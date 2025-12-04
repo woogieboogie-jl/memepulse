@@ -137,7 +137,7 @@ export function NavHeader() {
                 : 'text-muted-foreground hover:text-foreground'
                 }`}
             >
-              Feeds
+              Memecoin Pulses
               {pathname === '/oracle' && (
                 <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-primary rounded-full" />
               )}
@@ -161,7 +161,7 @@ export function NavHeader() {
                 : 'text-muted-foreground hover:text-foreground'
                 }`}
             >
-              My Agents
+              Command Center
               {pathname === '/my-agents' && (
                 <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-primary rounded-full" />
               )}
@@ -173,7 +173,7 @@ export function NavHeader() {
                 : 'text-muted-foreground hover:text-foreground'
                 }`}
             >
-              Manual Trading
+              Manual Trade
               {pathname === '/trade' && (
                 <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-primary rounded-full" />
               )}

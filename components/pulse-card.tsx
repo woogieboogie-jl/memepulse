@@ -31,7 +31,7 @@ export function PulseCard({
     const router = useRouter()
     const [showProof, setShowProof] = useState(false)
 
-    // Determine pulse intensity based on social score
+    // Determine pulse intensity based on Social Pulse
     const getPulseIntensity = () => {
         if (socialScore >= 80) return 'pulse-strong' // Red flash + intense heartbeat
         if (socialScore >= 60) return 'pulse-medium' // Orange glow
@@ -69,7 +69,7 @@ export function PulseCard({
                     </div>
                 </div>
 
-                {/* Social Score Gauge */}
+                {/* Social Pulse Gauge */}
                 <div className="mb-3">
                     <div className="flex items-center justify-between text-xs mb-1">
                         <span className="text-muted-foreground">Social Pulse</span>

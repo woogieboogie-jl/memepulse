@@ -22,7 +22,7 @@ import { PoMGauge } from '@/components/pom-gauge'
 
 export default function TradePage() {
   const router = useRouter()
-  const [selectedAsset, setSelectedAsset] = useState('ETH-PERP')
+  const [selectedAsset, setSelectedAsset] = useState('DOGE-PERP')
   const [mounted, setMounted] = useState(false)
   const [isMarketListVisible, setIsMarketListVisible] = useState(true)
 
@@ -165,7 +165,8 @@ export default function TradePage() {
                       <SelectValue placeholder="Select Market" />
                     </SelectTrigger>
                     <SelectContent>
-                      {['ETH-PERP', 'BTC-PERP', 'SOL-PERP', 'AVAX-PERP', 'MATIC-PERP', 'LINK-PERP', 'UNI-PERP', 'AAVE-PERP', 'COMP-PERP', 'MKR-PERP', 'DOGE-PERP', 'SHIB-PERP', 'ADA-PERP', 'DOT-PERP', 'ATOM-PERP'].map((symbol) => (
+                      {/* Memecoin-only perps */}
+                      {['DOGE-PERP', 'PEPE-PERP', 'SHIB-PERP', 'FLOKI-PERP', 'WIF-PERP', 'BONK-PERP', 'BTC-PERP'].map((symbol) => (
                         <SelectItem key={symbol} value={symbol}>{symbol}</SelectItem>
                       ))}
                     </SelectContent>

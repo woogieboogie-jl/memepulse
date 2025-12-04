@@ -395,7 +395,7 @@ export default function CreateAgentPage() {
                           </div>
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-2">
-                          Based on {selectedMemecoin} social score & volume
+                          Based on {selectedMemecoin} Social Pulse & volume
                         </p>
                       </div>
                     )}

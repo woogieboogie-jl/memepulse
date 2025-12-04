@@ -52,7 +52,7 @@ export default function MarketplacePage() {
       case 'social':
         return (b.socialScore || 0) - (a.socialScore || 0)
       case 'hottest':
-        // Hottest = combination of social score + mTokensMined
+        // Hottest = combination of Social Pulse + mTokensMined
         const scoreA = (a.socialScore || 0) + ((a.mTokensMined || 0) / 100)
         const scoreB = (b.socialScore || 0) + ((b.mTokensMined || 0) / 100)
         return scoreB - scoreA

@@ -111,7 +111,7 @@ export function AgentCard({
     return 'bg-muted'
   }
 
-  // Pulse glow effect for high social score
+  // Pulse glow effect for high Social Pulse
   const shouldPulse = socialScore >= 80
   const cardClassName = `overflow-hidden transition-all cursor-pointer group h-full hover:border-primary/50 ${shouldPulse ? 'animate-pulse-glow' : ''
     }`
@@ -154,7 +154,7 @@ export function AgentCard({
           </div>
         </div>
 
-        {/* Social Score Gauge */}
+        {/* Social Pulse Gauge */}
         <div className="mb-2">
           <div className="flex items-center justify-between text-xs mb-1">
             <span className="text-muted-foreground flex items-center gap-1">
@@ -280,7 +280,7 @@ export function AgentCard({
         </div>
       </CardContent>
 
-      {/* Pulse Glow Overlay for High Social Score */}
+      {/* Pulse Glow Overlay for High Social Pulse */}
       {shouldPulse && (
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute inset-0 bg-destructive/5 animate-pulse" />

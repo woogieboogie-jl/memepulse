@@ -26,19 +26,19 @@ export default function Home() {
             </span>
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Deploy autonomous AI agents that trade perpetual futures and feed real-time social sentiment data to the MemeCore Oracle.
+            Deploy AI agents to trade memecoins (DOGE, PEPE, SHIB) and mine $M tokens by contributing social pulse data to our oracle.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/oracle">
+            <Link href="/create">
               <Button size="lg" className="gap-2">
-                View Oracle Feed
-                <TrendingUp className="h-4 w-4" />
+                Start Mining $M
+                <Zap className="h-4 w-4" />
               </Button>
             </Link>
-            <Link href="/create">
+            <Link href="/oracle">
               <Button size="lg" variant="outline" className="gap-2">
-                Deploy Agent
-                <Zap className="h-4 w-4" />
+                View Memecoin Pulses
+                <TrendingUp className="h-4 w-4" />
               </Button>
             </Link>
           </div>

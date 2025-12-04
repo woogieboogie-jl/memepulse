@@ -142,7 +142,7 @@ export function OracleFeed() {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="social">Social Score</SelectItem>
+                                <SelectItem value="social">Social Pulse</SelectItem>
                                 <SelectItem value="apy">Mining APY</SelectItem>
                                 <SelectItem value="price">Price Change</SelectItem>
                                 <SelectItem value="volume">Volume</SelectItem>
