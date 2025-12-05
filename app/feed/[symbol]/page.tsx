@@ -111,7 +111,7 @@ export default function FeedPage({ params }: { params: { symbol: string } }) {
     }
 
     // Filter agents by this memecoin
-    const feedAgents = allAgentsData.filter(agent => agent.memecoin === symbol)
+    const feedAgents = Object.values(allAgentsData).filter(agent => agent.memecoin === symbol)
 
     const copyAddress = () => {
         navigator.clipboard.writeText(contract.contractAddress)

@@ -155,125 +155,125 @@ export function AgentFeedTable({ agents, symbol }: AgentFeedTableProps) {
                                         variant="ghost"
                                         size="sm"
                                         className="h-8"
-                                        onClick={() => toggle Sort('accuracy')}
-                  >
-                                    Accuracy
-                                    <ArrowUpDown className="ml-2 h-3 w-3" />
-                                </Button>
-                            </TableHead>
-                            <TableHead>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8"
-                                    onClick={() => toggleSort('mined')}
-                                >
-                                    $M Mined
-                                    <ArrowUpDown className="ml-2 h-3 w-3" />
-                                </Button>
-                            </TableHead>
-                            <TableHead>Last Active</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {sortedAgents.map((agent, index) => {
-                            const stats = getAgentStats(agent.id)
-                            return (
-                                <TableRow key={agent.id} className="cursor-pointer hover:bg-muted/50">
-                                    <TableCell className="font-medium">
-                                        {index + 1}
-                                        {index < 3 && (
-                                            <span className="ml-1">
-                                                {index === 0 && '🥇'}
-                                                {index === 1 && '🥈'}
-                                                {index === 2 && '🥉'}
-                                            </span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xl">{agent.emoji}</span>
-                                            <span className="font-semibold">{agent.name}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{stats.updates}</TableCell>
-                                    <TableCell>
+                                        onClick={() => toggleSort('accuracy')}
+                                    >
+                                        Accuracy
+                                        <ArrowUpDown className="ml-2 h-3 w-3" />
+                                    </Button>
+                                </TableHead>
+                                <TableHead>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8"
+                                        onClick={() => toggleSort('mined')}
+                                    >
+                                        $M Mined
+                                        <ArrowUpDown className="ml-2 h-3 w-3" />
+                                    </Button>
+                                </TableHead>
+                                <TableHead>Last Active</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {sortedAgents.map((agent, index) => {
+                                const stats = getAgentStats(agent.id)
+                                return (
+                                    <TableRow key={agent.id} className="cursor-pointer hover:bg-muted/50">
+                                        <TableCell className="font-medium">
+                                            {index + 1}
+                                            {index < 3 && (
+                                                <span className="ml-1">
+                                                    {index === 0 && '🥇'}
+                                                    {index === 1 && '🥈'}
+                                                    {index === 2 && '🥉'}
+                                                </span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">{agent.emoji}</span>
+                                                <span className="font-semibold">{agent.name}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{stats.updates}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={stats.accuracy >= 95 ? 'default' : 'secondary'}>
+                                                {stats.accuracy.toFixed(1)}%
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="font-semibold text-primary">
+                                            {stats.mined} $M
+                                        </TableCell>
+                                        <TableCell className="text-sm text-muted-foreground">
+                                            {getTimeAgo(stats.lastActive)}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => router.push(`/agent/${agent.id}`)}
+                                            >
+                                                View Agent
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                {/* Mobile Cards */}
+                <div className="md:hidden space-y-3">
+                    {sortedAgents.map((agent, index) => {
+                        const stats = getAgentStats(agent.id)
+                        return (
+                            <div
+                                key={agent.id}
+                                className="p-4 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer"
+                                onClick={() => router.push(`/agent/${agent.id}`)}
+                            >
+                                <div className="flex items-start justify-between mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold text-muted-foreground">#{index + 1}</span>
+                                        <span className="text-2xl">{agent.emoji}</span>
+                                        <span className="font-semibold">{agent.name}</span>
+                                    </div>
+                                    {index < 3 && (
+                                        <span className="text-xl">
+                                            {index === 0 && '🥇'}
+                                            {index === 1 && '🥈'}
+                                            {index === 2 && '🥉'}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <div className="text-muted-foreground">Updates</div>
+                                        <div className="font-semibold">{stats.updates}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-muted-foreground">Accuracy</div>
                                         <Badge variant={stats.accuracy >= 95 ? 'default' : 'secondary'}>
                                             {stats.accuracy.toFixed(1)}%
                                         </Badge>
-                                    </TableCell>
-                                    <TableCell className="font-semibold text-primary">
-                                        {stats.mined} $M
-                                    </TableCell>
-                                    <TableCell className="text-sm text-muted-foreground">
-                                        {getTimeAgo(stats.lastActive)}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => router.push(`/agent/${agent.id}`)}
-                                        >
-                                            View Agent
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            )
-                        })}
-                    </TableBody>
-                </Table>
-            </div>
-
-            {/* Mobile Cards */}
-            <div className="md:hidden space-y-3">
-                {sortedAgents.map((agent, index) => {
-                    const stats = getAgentStats(agent.id)
-                    return (
-                        <div
-                            key={agent.id}
-                            className="p-4 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer"
-                            onClick={() => router.push(`/agent/${agent.id}`)}
-                        >
-                            <div className="flex items-start justify-between mb-3">
-                                <div className="flex items-center gap-2">
-                                    <span className="font-bold text-muted-foreground">#{index + 1}</span>
-                                    <span className="text-2xl">{agent.emoji}</span>
-                                    <span className="font-semibold">{agent.name}</span>
-                                </div>
-                                {index < 3 && (
-                                    <span className="text-xl">
-                                        {index === 0 && '🥇'}
-                                        {index === 1 && '🥈'}
-                                        {index === 2 && '🥉'}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div>
-                                    <div className="text-muted-foreground">Updates</div>
-                                    <div className="font-semibold">{stats.updates}</div>
-                                </div>
-                                <div>
-                                    <div className="text-muted-foreground">Accuracy</div>
-                                    <Badge variant={stats.accuracy >= 95 ? 'default' : 'secondary'}>
-                                        {stats.accuracy.toFixed(1)}%
-                                    </Badge>
-                                </div>
-                                <div>
-                                    <div className="text-muted-foreground">$M Mined</div>
-                                    <div className="font-semibold text-primary">{stats.mined} $M</div>
-                                </div>
-                                <div>
-                                    <div className="text-muted-foreground">Last Active</div>
-                                    <div className="text-xs">{getTimeAgo(stats.lastActive)}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-muted-foreground">$M Mined</div>
+                                        <div className="font-semibold text-primary">{stats.mined} $M</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-muted-foreground">Last Active</div>
+                                        <div className="text-xs">{getTimeAgo(stats.lastActive)}</div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )
-                })}
-            </div>
-        </CardContent>
-    </Card >
-  )
+                        )
+                    })}
+                </div>
+            </CardContent>
+        </Card >
+    )
 }
