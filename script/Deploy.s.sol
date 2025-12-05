@@ -11,11 +11,12 @@ import "../contracts/PriceFeed.sol";
 
 contract DeployScript is Script {
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        vm.startBroadcast(deployerPrivateKey);
+        // For testing: use msg.sender (set via --private-key flag)
+        // For production: use PRIVATE_KEY env var
+        vm.startBroadcast();
 
         console.log("=== MemePulse Oracle Deployment ===");
-        console.log("Deployer:", vm.addr(deployerPrivateKey));
+        console.log("Deployer:", msg.sender);
         console.log("");
 
         // 1. Deploy ProtocolConfig
