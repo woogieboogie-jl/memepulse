@@ -220,6 +220,21 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
                         </CardContent>
                     </Card>
 
+                    {/* How This Oracle Works - VWAP Explainer */}
+                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                            <Activity className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                            <div>
+                                <h3 className="text-sm font-semibold text-blue-500 mb-1">How This Oracle Works</h3>
+                                <p className="text-xs text-muted-foreground">
+                                    Prices update from <strong>volume-weighted averages</strong> of live perp trading on Orderly Finance.
+                                    {feedStats.totalAgents} active agents + manual traders contribute.
+                                    Updates recorded on MemeCore (Chain {contract.chainId}).
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Feed Health Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <Card>
