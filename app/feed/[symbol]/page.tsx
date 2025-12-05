@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button'
 import {
     getFeedContract,
     getMemecoinEmoji,
-    getMemecoinName
+    getMemecoinName,
+    getSupportedMemecoins
 } from '@/lib/memecoin-contracts'
 import { getFeedStats, getTimeAgo } from '@/lib/feed-stats'
 import {
@@ -22,18 +23,95 @@ import {
     CheckCircle2
 } from 'lucide-react'
 import { useState } from 'react'
+import { AgentFeedTable } from '@/components/agent-feed-table'
+import { AGENTS_DATA } from '@/lib/agents-data'
 
 export default function FeedPage({ params }: { params: { symbol: string } }) {
     const symbol = params.symbol.toUpperCase()
     const [copied, setCopied] = useState(false)
 
-    // Get contract and feed data
+    // Get contract and feed data with error handling
     const contract = getFeedContract(symbol)
     const feedStats = getFeedStats(symbol)
 
-    if (!contract || !feedStats) {
-        notFound()
+    // Error: Invalid memecoin symbol
+    if (!contract) {
+        return (
+            <div className="min-h-screen bg-background/80 backdrop-blur-sm">
+                <NavHeader />
+                <main className="container mx-auto px-4 py-16">
+                    <Card className="max-w-2xl mx-auto">
+                        <CardContent className="pt-6 text-center py-12">
+                            <div className="text-6xl mb-4">❌</div>
+                            <h1 className="text-2xl font-bold mb-2">Feed Not Found</h1>
+                            <p className="text-muted-foreground mb-6">
+                                The memecoin symbol "{params.symbol}" is not supported.
+                            </p>
+                            <div className="space-y-2 text-sm text-muted-foreground mb-6">
+                                <p>Supported memecoins:</p>
+                                <div className="flex flex-wrap gap-2 justify-center">
+                                    {getSupportedMemecoins().map(s => (
+                                        <Badge key={s} variant="outline">{getMemecoinEmoji(s)} {s}</Badge>
+                                    ))}
+                                </div>
+                            </div>
+                            <Button onClick={() => window.location.href = '/oracle'}>
+                                View All Feeds
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </main>
+            </div>
+        )
     }
+
+    // Warning: Contract exists but no stats (contract not deployed yet)
+    if (!feedStats) {
+        return (
+            <div className="min-h-screen bg-background/80 backdrop-blur-sm">
+                <NavHeader />
+                <main className="container mx-auto px-4 py-16">
+                    <Card className="max-w-2xl mx-auto border-amber-500/50">
+                        <CardContent className="pt-6 text-center py-12">
+                            <div className="text-6xl mb-4">⚠️</div>
+                            <h1 className="text-2xl font-bold mb-2">Feed Not Deployed</h1>
+                            <p className="text-muted-foreground mb-4">
+                                The {getMemecoinEmoji(symbol)} {getMemecoinName(symbol)} oracle feed contract exists but hasn't been deployed yet.
+                            </p>
+                            <div className="bg-muted/30 rounded-lg p-4 mb-6 text-left">
+                                <p className="text-sm font-semibold mb-2">Contract Details:</p>
+                                <div className="space-y-1 text-xs">
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Address:</span>
+                                        <code className="font-mono">{contract.contractAddress}</code>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Network:</span>
+                                        <span>{contract.network} (Chain ID: {contract.chainId})</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Status:</span>
+                                        <Badge variant="outline" className="text-amber-500">Pending Deployment</Badge>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex gap-3 justify-center">
+                                <Button variant="outline" onClick={() => window.location.href = '/oracle'}>
+                                    View All Feeds
+                                </Button>
+                                <Button onClick={() => window.location.href = '/docs'}>
+                                    View Documentation
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </main>
+            </div>
+        )
+    }
+
+    // Filter agents by this memecoin
+    const feedAgents = AGENTS_DATA.filter(agent => agent.memecoin === symbol)
 
     const copyAddress = () => {
         navigator.clipboard.writeText(contract.contractAddress)
@@ -199,16 +277,8 @@ export default function FeedPage({ params }: { params: { symbol: string } }) {
                         </CardContent>
                     </Card>
 
-                    {/* Coming Soon Section */}
-                    <Card className="border-dashed">
-                        <CardContent className="pt-6 text-center py-12">
-                            <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold mb-2">More Features Coming Soon</h3>
-                            <p className="text-sm text-muted-foreground mb-4">
-                                Agent registry, live update feed, and analytics charts will be available in the next update
-                            </p>
-                        </CardContent>
-                    </Card>
+                    {/* Registered Agents Table */}
+                    <AgentFeedTable agents={feedAgents} symbol={symbol} />
 
                 </div>
             </main>
