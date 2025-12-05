@@ -69,61 +69,37 @@ export interface Order {
   timestamp: number
 }
 
-// Base market data - matches WooFi interface
+// Base market data - memecoin-only perps matching our supported contracts
 const baseMarkets: Omit<MarketData, 'price' | 'change24h' | 'changePercent24h' | 'volume24h' | 'high24h' | 'low24h' | 'lastUpdate'>[] = [
-  { symbol: 'ETH-PERP', name: 'Ethereum Perpetual', marketCap: 350000000000 },
   { symbol: 'BTC-PERP', name: 'Bitcoin Perpetual', marketCap: 1200000000000 },
-  { symbol: 'SOL-PERP', name: 'Solana Perpetual', marketCap: 45000000000 },
-  { symbol: 'AVAX-PERP', name: 'Avalanche Perpetual', marketCap: 15000000000 },
-  { symbol: 'MATIC-PERP', name: 'Polygon Perpetual', marketCap: 8000000000 },
-  { symbol: 'LINK-PERP', name: 'Chainlink Perpetual', marketCap: 12000000000 },
-  { symbol: 'UNI-PERP', name: 'Uniswap Perpetual', marketCap: 6000000000 },
-  { symbol: 'AAVE-PERP', name: 'Aave Perpetual', marketCap: 2000000000 },
-  { symbol: 'COMP-PERP', name: 'Compound Perpetual', marketCap: 800000000 },
-  { symbol: 'MKR-PERP', name: 'Maker Perpetual', marketCap: 1500000000 },
   { symbol: 'DOGE-PERP', name: 'Dogecoin Perpetual', marketCap: 25000000000 },
+  { symbol: 'PEPE-PERP', name: 'Pepe Perpetual', marketCap: 3500000000 },
   { symbol: 'SHIB-PERP', name: 'Shiba Inu Perpetual', marketCap: 8000000000 },
-  { symbol: 'ADA-PERP', name: 'Cardano Perpetual', marketCap: 18000000000 },
-  { symbol: 'DOT-PERP', name: 'Polkadot Perpetual', marketCap: 9000000000 },
-  { symbol: 'ATOM-PERP', name: 'Cosmos Perpetual', marketCap: 3000000000 },
+  { symbol: 'FLOKI-PERP', name: 'Floki Perpetual', marketCap: 1200000000 },
+  { symbol: 'WIF-PERP', name: 'dogwifhat Perpetual', marketCap: 2800000000 },
+  { symbol: 'BONK-PERP', name: 'Bonk Perpetual', marketCap: 1500000000 },
 ]
 
-// Base prices for realistic market simulation
+// Base prices for realistic market simulation - memecoin perps only
 const basePrices: Record<string, number> = {
-  'ETH-PERP': 2901.41,
   'BTC-PERP': 67234.50,
-  'SOL-PERP': 198.75,
-  'AVAX-PERP': 38.92,
-  'MATIC-PERP': 0.8456,
-  'LINK-PERP': 14.67,
-  'UNI-PERP': 8.92,
-  'AAVE-PERP': 156.78,
-  'COMP-PERP': 67.45,
-  'MKR-PERP': 1234.56,
   'DOGE-PERP': 0.1456,
+  'PEPE-PERP': 0.00001234,
   'SHIB-PERP': 0.00002456,
-  'ADA-PERP': 0.4567,
-  'DOT-PERP': 6.78,
-  'ATOM-PERP': 9.87,
+  'FLOKI-PERP': 0.00012345,
+  'WIF-PERP': 2.34,
+  'BONK-PERP': 0.000023,
 }
 
-// Price volatility factors for realistic movement
+// Price volatility factors for realistic movement - memecoin perps
 const volatilityFactors: Record<string, number> = {
-  'ETH-PERP': 0.02,
   'BTC-PERP': 0.015,
-  'SOL-PERP': 0.03,
-  'AVAX-PERP': 0.035,
-  'MATIC-PERP': 0.04,
-  'LINK-PERP': 0.03,
-  'UNI-PERP': 0.04,
-  'AAVE-PERP': 0.035,
-  'COMP-PERP': 0.04,
-  'MKR-PERP': 0.025,
   'DOGE-PERP': 0.06,
+  'PEPE-PERP': 0.08,
   'SHIB-PERP': 0.08,
-  'ADA-PERP': 0.04,
-  'DOT-PERP': 0.035,
-  'ATOM-PERP': 0.04,
+  'FLOKI-PERP': 0.07,
+  'WIF-PERP': 0.09,
+  'BONK-PERP': 0.08,
 }
 
 // Global state for price tracking - only initialize on client
@@ -151,9 +127,9 @@ function initializeIfNeeded() {
   isInitialized = true
 }
 
-// Generate mock positions for demo
+// Generate mock positions for demo - memecoin perps only
 function generateMockPositions() {
-  const symbols = ['ETH-PERP', 'BTC-PERP', 'SOL-PERP', 'AVAX-PERP', 'MATIC-PERP', 'ADA-PERP', 'DOT-PERP']
+  const symbols = ['DOGE-PERP', 'PEPE-PERP', 'SHIB-PERP', 'BTC-PERP', 'WIF-PERP']
 
   mockPositions = symbols.slice(0, 7).map((symbol, index) => {
     const entryPrice = basePrices[symbol] * (0.95 + Math.random() * 0.1)
@@ -184,9 +160,9 @@ function generateMockPositions() {
   })
 }
 
-// Generate mock orders for demo
+// Generate mock orders for demo - memecoin perps only
 function generateMockOrders() {
-  const symbols = ['ETH-PERP', 'BTC-PERP', 'SOL-PERP', 'AVAX-PERP', 'MATIC-PERP', 'ADA-PERP', 'DOT-PERP', 'LINK-PERP', 'UNI-PERP', 'AAVE-PERP', 'ATOM-PERP', 'NEAR-PERP']
+  const symbols = ['DOGE-PERP', 'BTC-PERP', 'SHIB-PERP', 'PEPE-PERP', 'FLOKI-PERP', 'WIF-PERP', 'BONK-PERP']
   const statuses: Order['status'][] = ['pending', 'filled', 'partial']
   const types: Order['type'][] = ['limit', 'market', 'stop']
 

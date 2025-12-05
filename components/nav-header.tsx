@@ -173,7 +173,7 @@ export function NavHeader() {
                 : 'text-muted-foreground hover:text-foreground'
                 }`}
             >
-              Manual Trade
+              Manual Mode
               {pathname === '/trade' && (
                 <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-primary rounded-full" />
               )}
