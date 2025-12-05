@@ -217,7 +217,7 @@ export default function MarketplacePage() {
                         </div>
                       </div>
                     </div>
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-2">
                       {agents.map((agent) => (
                         <MarketplaceCard
                           key={agent.id}
@@ -233,7 +233,7 @@ export default function MarketplacePage() {
             </div>
           ) : (
             // Show flat list for selected memecoin
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-2">
               {filteredAgents.map((agent) => (
                 <MarketplaceCard
                   key={agent.id}
