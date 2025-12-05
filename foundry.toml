@@ -9,8 +9,11 @@ via_ir = false
 
 [rpc_endpoints]
 memecore_testnet = "https://formicarium.memecorescan.io"
+memecore = "https://rpc.insectarium.memecore.net"
+anvil = "http://localhost:8545"
 
 [etherscan]
 memecore_testnet = { key = "${MEMECORESCAN_API_KEY}", url = "https://formicarium.memecorescan.io/api" }
+memecore = { key = "empty", url = "https://insectarium.blockscout.memecore.com/api" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

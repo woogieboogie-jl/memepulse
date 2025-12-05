@@ -99,7 +99,7 @@ contract DeployScript is Script {
         console.log("Save these addresses to deployments/memecore_testnet.json:");
         console.log("{");
         console.log('  "network": "MemeCore Testnet",');
-        console.log('  "chainId": 12227332,');
+        console.log('  "chainId": 43522,');
         console.log('  "contracts": {');
         console.log(string.concat('    "config": "', vm.toString(address(config)), '",'));
         console.log(string.concat('    "registry": "', vm.toString(address(registry)), '",'));

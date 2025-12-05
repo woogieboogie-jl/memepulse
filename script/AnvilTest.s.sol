@@ -17,11 +17,11 @@ contract AnvilTest is Script {
     function run() external {
         uint256 deployerKey = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
         
-        // Use addresses from latest deployment
-        address configAddr = 0x5FbDB2315678afecb367f032d93F642f64180aa3;
-        address registryAddr = 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512;
-        address aggregatorAddr = 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9;
-        address dogeAddr = 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6;
+        // Use addresses from MemeCore Testnet deployment
+        address configAddr = 0xC81536da58b4b2e4ff433FE511bF0e035576eC15;
+        address registryAddr = 0xb90b78B0aE7f8210200EdedC73F9034bD7a644eF;
+        address aggregatorAddr = 0xc8e8e0F33d0cD24Ee2cF2536fe2e34c6f0D83cd4;
+        address dogeAddr = 0x30490c9239FDc6ff8FEEF84FF6f7B657Ec6882F8;
         
         AgentRegistry registry = AgentRegistry(registryAddr);
         Aggregator aggregator = Aggregator(aggregatorAddr);
