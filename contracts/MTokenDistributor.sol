@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./MToken.sol";
 import "./AgentRegistry.sol";
+import "./ProtocolConfig.sol";
 
 /**
  * @title MTokenDistributor
@@ -16,10 +17,10 @@ contract MTokenDistributor is Ownable, ReentrancyGuard {
 
     MToken public mToken;
     AgentRegistry public agentRegistry;
+    ProtocolConfig public config;
     address public aggregator;
     
     uint256 public currentEpoch;
-    uint256 public epochDuration = 1 weeks;
     uint256 public epochStartTime;
     
     // epoch => total updates
@@ -84,13 +85,16 @@ contract MTokenDistributor is Ownable, ReentrancyGuard {
 
     constructor(
         address _mToken,
-        address _agentRegistry
+        address _agentRegistry,
+        address _config
     ) Ownable(msg.sender) {
         require(_mToken != address(0), "Invalid M token");
         require(_agentRegistry != address(0), "Invalid registry");
+        require(_config != address(0), "Invalid config");
         
         mToken = MToken(_mToken);
         agentRegistry = AgentRegistry(_agentRegistry);
+        config = ProtocolConfig(_config);
         
         currentEpoch = 1;
         epochStartTime = block.timestamp;
@@ -196,13 +200,16 @@ contract MTokenDistributor is Ownable, ReentrancyGuard {
      */
     function startNewEpoch() external onlyOwner {
         require(
-            block.timestamp >= epochStartTime + epochDuration,
+            block.timestamp >= epochStartTime + config.epochDuration(),
             "Epoch not ended"
         );
         
         // Calculate total reward for completed epoch
         uint256 totalReward = _calculateEpochTotalReward();
         epochTotalReward[currentEpoch] = totalReward;
+        
+        // Increment epoch in AgentRegistry (for credibility growth)
+        agentRegistry.incrementEpoch();
         
         // Increment epoch
         currentEpoch++;
@@ -237,10 +244,7 @@ contract MTokenDistributor is Ownable, ReentrancyGuard {
      * @notice Set epoch duration (admin only)
      * @param _duration New duration in seconds
      */
-    function setEpochDuration(uint256 _duration) external onlyOwner {
-        require(_duration >= 1 days && _duration <= 30 days, "Invalid duration");
-        epochDuration = _duration;
-    }
+
 
     /**
      * @notice Set total allocation (admin only)
@@ -254,7 +258,7 @@ contract MTokenDistributor is Ownable, ReentrancyGuard {
      * @notice Get time until next epoch
      */
     function getTimeUntilNextEpoch() external view returns (uint256) {
-        uint256 epochEnd = epochStartTime + epochDuration;
+        uint256 epochEnd = epochStartTime + config.epochDuration();
         if (block.timestamp >= epochEnd) {
             return 0;
         }
@@ -285,21 +289,22 @@ contract MTokenDistributor is Ownable, ReentrancyGuard {
      * @notice Calculate total reward for an epoch
      */
     function _calculateEpochTotalReward() internal view returns (uint256) {
-        // Sum of all feed base rewards
-        // In production, this would query all active feeds
-        // For now, return a fixed amount per epoch
-        return 10000 * 10**18;  // 10,000 M tokens per epoch
+        // Sum all feed rewards from ProtocolConfig
+        string[7] memory feeds = ["BTC", "DOGE", "PEPE", "SHIB", "FLOKI", "WIF", "BONK"];
+        uint256 total = 0;
+        
+        for (uint256 i = 0; i < feeds.length; i++) {
+            total += config.getFeedReward(feeds[i]);
+        }
+        
+        return total;
     }
 
     /**
      * @notice Set default base rewards for feeds
      */
     function _setDefaultBaseRewards() internal {
-        // Default: 1000 M tokens per feed per epoch
-        string[7] memory feeds = ["BTC", "DOGE", "PEPE", "SHIB", "FLOKI", "WIF", "BONK"];
-        
-        for (uint256 i = 0; i < feeds.length; i++) {
-            feedBaseRewards[feeds[i]] = 1000 * 10**18;
-        }
+        // Feed rewards now managed by ProtocolConfig
+        // This function kept for backwards compatibility but does nothing
     }
 }

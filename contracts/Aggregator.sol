@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./AgentRegistry.sol";
 import "./PriceFeed.sol";
+import "./ProtocolConfig.sol";
 
 /**
  * @title Aggregator
@@ -65,11 +66,14 @@ contract Aggregator is Ownable, ReentrancyGuard {
 
     constructor(
         address _agentRegistry,
-        address _mTokenDistributor
+        address _mTokenDistributor,
+        address _config
     ) Ownable(msg.sender) {
         require(_agentRegistry != address(0), "Invalid registry");
+        require(_config != address(0), "Invalid config");
         agentRegistry = AgentRegistry(_agentRegistry);
         mTokenDistributor = _mTokenDistributor;
+        config = ProtocolConfig(_config);
     }
 
     // ============ External Functions ============
@@ -88,7 +92,7 @@ contract Aggregator is Ownable, ReentrancyGuard {
         // Validate
         require(agentRegistry.isRegistered(agent, feedSymbol), "Agent not registered");
         require(report.volume > 0, "Volume must be > 0");
-        require(report.leverage >= 1 && report.leverage <= MAX_LEVERAGE, "Invalid leverage");
+        require(report.leverage >= 1 && report.leverage <= 10, "Invalid leverage");
         require(report.timestamp <= block.timestamp, "Future timestamp");
         require(!processedTxHashes[report.orderlyTxHash], "Already processed");
         require(address(priceFeeds[feedSymbol]) != address(0), "Feed not found");
@@ -102,7 +106,8 @@ contract Aggregator is Ownable, ReentrancyGuard {
         
         updates[feedSymbol].push(fullReport);
         
-        // Trim to maxUpdates
+        // Trim to maxUpdates from config
+        uint256 maxUpdates = config.maxUpdatesForVCWAP();
         if (updates[feedSymbol].length > maxUpdates) {
             // Remove oldest update (shift array)
             for (uint256 i = 0; i < updates[feedSymbol].length - 1; i++) {
@@ -168,7 +173,8 @@ contract Aggregator is Ownable, ReentrancyGuard {
             
             // Get agent credibility (default 10000 = 100%)
             uint256 credibility = agentRegistry.getCredibility(update.agent);
-            if (credibility < MIN_CREDIBILITY) credibility = MIN_CREDIBILITY;
+            uint256 minCred = config.minCredibility();
+            if (credibility < minCred) credibility = minCred;
             
             // VCWAP Weight = volume × credibility × leverage
             // credibility is basis points, so divide by 10000
@@ -201,15 +207,6 @@ contract Aggregator is Ownable, ReentrancyGuard {
      */
     function setDistributor(address _distributor) external onlyOwner {
         mTokenDistributor = _distributor;
-    }
-
-    /**
-     * @notice Set max updates for VWAP calculation
-     * @param _maxUpdates New max updates value
-     */
-    function setMaxUpdates(uint256 _maxUpdates) external onlyOwner {
-        require(_maxUpdates >= 10 && _maxUpdates <= 100, "Invalid range");
-        maxUpdates = _maxUpdates;
     }
 
     /**
