@@ -23,11 +23,20 @@ contract AgentRegistry is Ownable {
     // agent => cumulative accuracy score
     mapping(address => uint256) public accuracyScore;
     
+    // agent => epoch when first registered
+    mapping(address => uint256) public agentStartEpoch;
+    
+    // Current epoch (incremented by MTokenDistributor)
+    uint256 public currentEpoch = 1;
+    
     // Default credibility for new agents (50% = 5000 basis points)
     uint256 public constant DEFAULT_CREDIBILITY = 5000;
     
     // Minimum updates before credibility is fully calculated
     uint256 public constant MIN_UPDATES_FOR_FULL_CREDIBILITY = 10;
+    
+    // Credibility growth factor per epoch (logarithmic)
+    uint256 public constant GROWTH_FACTOR = 100;  // 1% per epoch, logarithmic
 
     // ============ Events ============
 
@@ -64,9 +73,10 @@ contract AgentRegistry is Ownable {
         
         registrations[agent][feedSymbol] = true;
         
-        // Initialize credibility if first registration
+        // Initialize credibility and epoch tracking if first registration
         if (credibilityScores[agent] == 0) {
             credibilityScores[agent] = DEFAULT_CREDIBILITY;
+            agentStartEpoch[agent] = currentEpoch;
         }
         
         emit AgentRegistered(agent, feedSymbol, block.timestamp);
@@ -86,13 +96,43 @@ contract AgentRegistry is Ownable {
     }
 
     /**
-     * @notice Get credibility score for an agent
+     * @notice Get credibility score for an agent with logarithmic growth
      * @param agent Address of the agent
      * @return Credibility score in basis points (10000 = 100%)
+     * @dev Credibility = baseCredibility + log-linear growth based on epochs active
      */
     function getCredibility(address agent) external view returns (uint256) {
-        uint256 score = credibilityScores[agent];
-        return score == 0 ? DEFAULT_CREDIBILITY : score;
+        uint256 baseScore = credibilityScores[agent];
+        if (baseScore == 0) return DEFAULT_CREDIBILITY;
+        
+        // Calculate logarithmic growth bonus
+        uint256 epochsActive = currentEpoch > agentStartEpoch[agent] 
+            ? currentEpoch - agentStartEpoch[agent] 
+            : 0;
+        
+        if (epochsActive == 0) return baseScore;
+        
+        // Logarithmic growth: bonus = GROWTH_FACTOR * log2(epochsActive + 1)
+        // Approximation: Each doubling of epochs adds GROWTH_FACTOR
+        uint256 logBonus = 0;
+        uint256 temp = epochsActive + 1;
+        
+        while (temp > 1) {
+            logBonus += GROWTH_FACTOR;
+            temp = temp / 2;
+        }
+        
+        uint256 finalScore = baseScore + logBonus;
+        
+        // Cap at 100%
+        return finalScore > 10000 ? 10000 : finalScore;
+    }
+    
+    /**
+     * @notice Increment epoch (called by MTokenDistributor)
+     */
+    function incrementEpoch() external onlyOwner {
+        currentEpoch++;
     }
 
     /**

@@ -28,17 +28,13 @@ contract Aggregator is Ownable, ReentrancyGuard {
 
     AgentRegistry public agentRegistry;
     address public mTokenDistributor;
+    ProtocolConfig public config;
     
     // Feed symbol => PriceFeed contract
     mapping(string => PriceFeed) public priceFeeds;
     
     // Feed symbol => array of recent updates
     mapping(string => AgentUpdateReport[]) public updates;
-    
-    // Configuration
-    uint256 public maxUpdates = 50;  // Last N for VWAP
-    uint256 public constant MIN_CREDIBILITY = 500;  // 5% min credibility
-    uint256 public constant MAX_LEVERAGE = 10;
     
     // Track processed Orderly tx hashes to prevent replay
     mapping(bytes32 => bool) public processedTxHashes;
