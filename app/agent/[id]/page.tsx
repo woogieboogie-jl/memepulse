@@ -441,6 +441,35 @@ export default function AgentDetailPage() {
             </div>
           </div>
 
+          {/* Oracle Feed Assignment */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Oracle Feed Assignment
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Contributing to:</p>
+                  <p className="text-2xl font-bold flex items-center gap-2 mb-1">
+                    {agent.memecoin} Pulse Oracle
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {agent.oracleContributions} submissions • {agent.mTokensMined} $M mined
+                  </p>
+                </div>
+                <Button asChild>
+                  <Link href={`/feed/${agent.memecoin}`}>
+                    View Full Feed
+                    <ExternalLink className="h-4 w-4 ml-2" />
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           <Tabs defaultValue="positions" className="space-y-4">
             <TabsList>
               <TabsTrigger value="positions">Positions</TabsTrigger>

@@ -5,11 +5,13 @@ import { NavHeader } from '@/components/nav-header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 import {
     getFeedContract,
     getMemecoinEmoji,
     getMemecoinName,
-    getSupportedMemecoins
+    getSupportedMemecoins,
+    MEMECORE_NETWORK
 } from '@/lib/memecoin-contracts'
 import { getFeedStats, getTimeAgo } from '@/lib/feed-stats'
 import {
@@ -20,7 +22,9 @@ import {
     TrendingUp,
     ExternalLink,
     Copy,
-    CheckCircle2
+    CheckCircle2,
+    ChevronRight,
+    FileText
 } from 'lucide-react'
 import { use, useState } from 'react'
 import { AgentFeedTable } from '@/components/agent-feed-table'
@@ -128,8 +132,17 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
         <div className="min-h-screen bg-background/80 backdrop-blur-sm">
             <NavHeader />
 
-            <main className="container mx-auto px-4 py-8">
+            <main className="container mx-auto px-4 py-6">
                 <div className="max-w-6xl mx-auto space-y-4">
+
+                    {/* Breadcrumb */}
+                    <div className="flex items-center gap-2 text-sm mb-2">
+                        <Link href="/" className="text-muted-foreground hover:text-foreground">Home</Link>
+                        <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                        <Link href="/oracle" className="text-muted-foreground hover:text-foreground">Memecoin Pulses</Link>
+                        <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                        <span className="font-semibold">{symbol} Feed</span>
+                    </div>
 
                     {/* Hero Section */}
                     <Card>
@@ -189,10 +202,20 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
                                         <p className="font-medium mt-1">{contract.updateFrequency}</p>
                                     </div>
                                 </div>
-                                <Button variant="outline" size="sm" className="gap-2">
-                                    <ExternalLink className="h-4 w-4" />
-                                    View on MemeCore Explorer
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button variant="outline" size="sm" className="gap-2" asChild>
+                                        <Link href={`${MEMECORE_NETWORK.blockExplorer}/address/${contract.contractAddress}`} target="_blank" rel="noopener noreferrer">
+                                            <ExternalLink className="h-4 w-4" />
+                                            View on MemeCore Explorer
+                                        </Link>
+                                    </Button>
+                                    <Button variant="ghost" size="sm" className="gap-2" asChild>
+                                        <Link href="/docs">
+                                            <FileText className="h-4 w-4" />
+                                            Contract Docs
+                                        </Link>
+                                    </Button>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
