@@ -40,33 +40,21 @@ contract TestLiveInteractions is Script {
         MToken mToken = MToken(mTokenAddr);
         MTokenDistributor distributor = MTokenDistributor(distributorAddr);
         
-        console.log("=== Testing Live Agent Interactions ===");
-        console.log("");
-        console.log("Deployer:", deployer);
-        console.log("Agent1:", agent1);
-        console.log("Agent2:", agent2);
-        console.log("");
         
         // Step 1: Register agents (as deployer/owner)
         vm.startBroadcast(deployerKey);
         
-        console.log("Step 1: Registering agents...");
         registry.registerAgent(agent1, "DOGE");
         registry.registerAgent(agent2, "DOGE");
-        console.log("[OK] Agents registered");
-        console.log("");
         
         // Transfer registry ownership to distributor for epoch management
         registry.transferOwnership(address(distributor));
-        console.log("[OK] Registry ownership transferred to Distributor");
-        console.log("");
         
         vm.stopBroadcast();
         
         // Step 2: Submit updates as agents
         vm.startBroadcast(agent1Key);
         
-        console.log("Step 2: Agent 1 submitting update...");
         Aggregator.AgentUpdateReport memory report1 = Aggregator.AgentUpdateReport({
             price: 8500000,  // 0.085 USD
             volume: 100000000000,  // 1000 USD
@@ -78,14 +66,11 @@ contract TestLiveInteractions is Script {
         });
         
         aggregator.submitUpdate(agent1, "DOGE", report1);
-        console.log("[OK] Agent 1 update submitted");
-        console.log("");
         
         vm.stopBroadcast();
         
         vm.startBroadcast(agent2Key);
         
-        console.log("Step 3: Agent 2 submitting update...");
         Aggregator.AgentUpdateReport memory report2 = Aggregator.AgentUpdateReport({
             price: 9000000,  // 0.09 USD
             volume: 200000000000,  // 2000 USD
@@ -97,64 +82,44 @@ contract TestLiveInteractions is Script {
         });
         
         aggregator.submitUpdate(agent2, "DOGE", report2);
-        console.log("[OK] Agent 2 update submitted");
-        console.log("");
         
         vm.stopBroadcast();
         
         // Step 3: Check VCWAP
-        console.log("Step 4: Checking VCWAP...");
         uint256 vcwap = aggregator.calculateVWAP("DOGE");
-        console.log("  VCWAP:", vcwap, "(", vcwap / 10000, "cents)");
         
         (, int256 feedPrice, , , ) = dogeFeed.latestRoundData();
-        console.log("  PriceFeed:", feedPrice);
-        console.log("");
         
         // Step 4: Advance time and epoch
         vm.startBroadcast(deployerKey);
         
-        console.log("Step 5: Advancing epoch...");
         vm.warp(block.timestamp + 1 weeks);
         distributor.startNewEpoch();
-        console.log("[OK] New epoch started");
-        console.log("  Current epoch:", distributor.currentEpoch());
-        console.log("");
         
         vm.stopBroadcast();
         
         // Step 5: Claim rewards
         vm.startBroadcast(agent1Key);
         
-        console.log("Step 6: Agent 1 claiming rewards...");
         uint256 claimable1 = distributor.getClaimableRewards(agent1, 1);
-        console.log("  Claimable:", claimable1 / 10**18, "M tokens");
         
         if (claimable1 > 0) {
             distributor.claimRewards(1);
             uint256 balance1 = mToken.balanceOf(agent1);
-            console.log("[OK] Claimed! Balance:", balance1 / 10**18, "M");
         }
-        console.log("");
         
         vm.stopBroadcast();
         
         vm.startBroadcast(agent2Key);
         
-        console.log("Step 7: Agent 2 claiming rewards...");
         uint256 claimable2 = distributor.getClaimableRewards(agent2, 1);
-        console.log("  Claimable:", claimable2 / 10**18, "M tokens");
         
         if (claimable2 > 0) {
             distributor.claimRewards(1);
             uint256 balance2 = mToken.balanceOf(agent2);
-            console.log("[OK] Claimed! Balance:", balance2 / 10**18, "M");
         }
-        console.log("");
         
         vm.stopBroadcast();
         
-        console.log("=== Live Testing Complete! ===");
-        console.log("[OK] All agent interactions successful on Anvil!");
     }
 }
