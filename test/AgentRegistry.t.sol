@@ -15,6 +15,10 @@ contract AgentRegistryTest is Test {
         agent1 = address(0x1);
         agent2 = address(0x2);
         registry = new AgentRegistry();
+        
+        // Set test contract as aggregator and distributor for testing
+        registry.setAggregator(address(this));
+        registry.setDistributor(address(this));
     }
 
     function testRegisterAgent() public {

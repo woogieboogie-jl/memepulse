@@ -194,7 +194,6 @@ contract IntegrationTest is Test {
 
     function testRewardsFromConfig() public {
         registry.registerAgent(agent1, "DOGE");
-        registry.transferOwnership(address(aggregator));  // Transfer after registration
         
         // Submit update
         aggregator.submitUpdate(agent1, "DOGE", Aggregator.AgentUpdateReport({
@@ -234,7 +233,6 @@ contract IntegrationTest is Test {
         config.setMaxUpdates(20);
         
         registry.registerAgent(agent1, "DOGE");
-        registry.transferOwnership(address(aggregator));  // Transfer after registration
         
         // Submit 30 updates
         for (uint i = 0; i < 30; i++) {
