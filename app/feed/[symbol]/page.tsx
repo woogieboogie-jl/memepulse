@@ -22,14 +22,15 @@ import {
     Copy,
     CheckCircle2
 } from 'lucide-react'
-import { useState } from 'react'
+import { use, useState } from 'react'
 import { AgentFeedTable } from '@/components/agent-feed-table'
 import { OracleUpdateFeed } from '@/components/oracle-update-feed'
 import { FeedAnalyticsCharts } from '@/components/feed-analytics-charts'
 import { allAgentsData } from '@/lib/agents-data'
 
-export default function FeedPage({ params }: { params: { symbol: string } }) {
-    const symbol = params.symbol.toUpperCase()
+export default function FeedPage({ params }: { params: Promise<{ symbol: string }> }) {
+    const { symbol: paramSymbol } = use(params)
+    const symbol = paramSymbol.toUpperCase()
     const [copied, setCopied] = useState(false)
 
     // Get contract and feed data with error handling
