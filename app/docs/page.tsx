@@ -4,6 +4,7 @@ import { NavHeader } from '@/components/nav-header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { FileCode, Zap, Database, Globe, Code2, Lock } from 'lucide-react'
+import { getAllFeedContracts } from '@/lib/memecoin-contracts'
 
 export default function DocsPage() {
     return (
