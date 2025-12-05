@@ -21,7 +21,8 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { ArrowUpDown, TrendingUp, Target, Zap } from 'lucide-react'
-import { Agent } from '@/lib/agents-data'
+import { allAgentsData } from '@/lib/agents-data'
+import type { Agent } from '@/lib/agents-data'
 import { getTimeAgo } from '@/lib/feed-stats'
 
 interface AgentFeedTableProps {

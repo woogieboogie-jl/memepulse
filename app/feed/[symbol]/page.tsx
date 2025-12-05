@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { AgentFeedTable } from '@/components/agent-feed-table'
-import { AGENTS_DATA } from '@/lib/agents-data'
+import { allAgentsData } from '@/lib/agents-data'
 
 export default function FeedPage({ params }: { params: { symbol: string } }) {
     const symbol = params.symbol.toUpperCase()
@@ -111,7 +111,7 @@ export default function FeedPage({ params }: { params: { symbol: string } }) {
     }
 
     // Filter agents by this memecoin
-    const feedAgents = AGENTS_DATA.filter(agent => agent.memecoin === symbol)
+    const feedAgents = allAgentsData.filter(agent => agent.memecoin === symbol)
 
     const copyAddress = () => {
         navigator.clipboard.writeText(contract.contractAddress)
