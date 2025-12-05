@@ -149,6 +149,19 @@ export function PulseCard({
                     </button>
                 )}
 
+                {/* View Feed Details Link */}
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 w-full text-xs"
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/feed/${symbol}`)
+                    }}
+                >
+                    View Feed Details →
+                </Button>
+
                 {/* Pulse Animation Overlay */}
                 {socialScore >= 80 && (
                     <div className="absolute inset-0 pointer-events-none">
