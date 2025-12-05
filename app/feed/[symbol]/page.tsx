@@ -25,6 +25,7 @@ import {
 import { useState } from 'react'
 import { AgentFeedTable } from '@/components/agent-feed-table'
 import { OracleUpdateFeed } from '@/components/oracle-update-feed'
+import { FeedAnalyticsCharts } from '@/components/feed-analytics-charts'
 import { allAgentsData } from '@/lib/agents-data'
 
 export default function FeedPage({ params }: { params: { symbol: string } }) {
