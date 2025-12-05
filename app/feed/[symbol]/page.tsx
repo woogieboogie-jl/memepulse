@@ -48,7 +48,7 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
                             <div className="text-6xl mb-4">❌</div>
                             <h1 className="text-2xl font-bold mb-2">Feed Not Found</h1>
                             <p className="text-muted-foreground mb-6">
-                                The memecoin symbol "{params.symbol}" is not supported.
+                                The memecoin symbol "{symbol}" is not supported.
                             </p>
                             <div className="space-y-2 text-sm text-muted-foreground mb-6">
                                 <p>Supported memecoins:</p>
