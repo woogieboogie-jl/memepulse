@@ -85,10 +85,9 @@ contract IntegrationTest is Test {
         (uint256 updates1, uint256 volume1,) = distributor.getCurrentEpochStats(agent1);
         (uint256 updates2, uint256 volume2,) = distributor.getCurrentEpochStats(agent2);
         
-        assertEq(updates1, 1);
-        assertEq(volume1, 100000000000);
-        assertEq(updates2, 1);
-        assertEq(volume2, 200000000000);
+        // Volume-based tracking
+        assertEq(volume1, 100000000000);  // 1000 USD
+        assertEq(volume2, 200000000000);  // 2000 USD
         
         // 5. Advance time and start new epoch
         vm.warp(block.timestamp + 1 weeks);
@@ -110,23 +109,22 @@ contract IntegrationTest is Test {
         distributor.claimRewards(1);
         uint256 balanceAfter2 = mToken.balanceOf(agent2);
         
-        assertTrue(balanceAfter2 > balanceBefore2);
         
-        // Agent2 should get more rewards (higher volume)
-        // NOTE: With current distributor logic, rewards are split by update count,
-        // not volume. Both agents submitted 1 update each with same credibility (5100),
-        // so they get equal rewards despite different volumes.
+        // Agent2 should get more rewards (higher volume: 2000 vs 1000)
+        // Now using volume-based distribution, agent2 contributed 2x volume
         uint256 reward1 = balanceAfter1 - balanceBefore1;
         uint256 reward2 = balanceAfter2 - balanceBefore2;
         
         // Debug logging
         console.log("Reward1:", reward1);
         console.log("Reward2:", reward2);
-        console.log("Agent1 credibility:", registry.getCredibility(agent1));
-        console.log("Agent2 credibility:", registry.getCredibility(agent2));
+        console.log("Agent1 volume: 1000 USD");
+        console.log("Agent2 volume: 2000 USD");
         
-        // Both contributed 1 update each, so rewards should be equal
-        assertEq(reward1, reward2);
+        // Agent2 should get ~2x rewards (2x volume)
+        assertTrue(reward2 > reward1);
+        // Should be approximately reward2 ≈ 2 * reward1
+        assertTrue(reward2 >= reward1 * 19 / 10); // At least 1.9x
     }
 
     function testCredibilityGrowthOverEpochs() public {

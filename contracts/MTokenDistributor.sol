@@ -23,16 +23,10 @@ contract MTokenDistributor is Ownable, ReentrancyGuard {
     uint256 public currentEpoch;
     uint256 public epochStartTime;
     
-    // epoch => total updates
-    mapping(uint256 => uint256) public epochTotalUpdates;
-    
-    // epoch => total volume contributed
+    // epoch => total volume across all agents
     mapping(uint256 => uint256) public epochTotalVolume;
     
-    // epoch => agent => update count
-    mapping(uint256 => mapping(address => uint256)) public agentUpdates;
-    
-    // epoch => agent => volume contributed
+    // epoch => agent => total volume contributed (in 8 decimals)
     mapping(uint256 => mapping(address => uint256)) public agentVolume;
     
     // epoch => agent => claimed
@@ -108,21 +102,14 @@ contract MTokenDistributor is Ownable, ReentrancyGuard {
     /**
      * @notice Record contribution from agent (called by Aggregator)
      * @param agent Address of the agent
-     * @param feedSymbol Symbol of the feed
      * @param volume Volume contributed
      */
-    function recordContribution(
-        address agent,
-        string calldata feedSymbol,
-        uint256 volume
-    ) external onlyAggregator {
-        agentUpdates[currentEpoch][agent]++;
+    function recordContribution(address agent, uint256 volume) external onlyAggregator {
         agentVolume[currentEpoch][agent] += volume;
-        
-        epochTotalUpdates[currentEpoch]++;
         epochTotalVolume[currentEpoch] += volume;
         
-        emit ContributionRecorded(agent, feedSymbol, volume, currentEpoch);
+        // Note: feedSymbol is no longer a parameter, using an empty string for backward compatibility with event signature
+        emit ContributionRecorded(agent, "", volume, currentEpoch);
     }
 
     /**
@@ -157,14 +144,14 @@ contract MTokenDistributor is Ownable, ReentrancyGuard {
         view 
         returns (uint256) 
     {
-        uint256 agentContribution = agentUpdates[epoch][agent];
-        uint256 totalContributions = epochTotalUpdates[epoch];
+        uint256 agentContribution = agentVolume[epoch][agent];
+        uint256 totalContributions = epochTotalVolume[epoch];
         
         if (totalContributions == 0 || agentContribution == 0) {
             return 0;
         }
         
-        // Share of total updates (basis points)
+        // Share of total volume (basis points)
         uint256 share = (agentContribution * 10000) / totalContributions;
         
         // Credibility multiplier
@@ -272,15 +259,12 @@ contract MTokenDistributor is Ownable, ReentrancyGuard {
     function getCurrentEpochStats(address agent) 
         external 
         view 
-        returns (
-            uint256 updates,
-            uint256 volume,
-            uint256 estimatedReward
-        ) 
+        returns (uint256 updates, uint256 volume, uint256 credibility) 
     {
-        updates = agentUpdates[currentEpoch][agent];
+        // Updates for backward compatibility (always 0 now)
+        updates = 0;
         volume = agentVolume[currentEpoch][agent];
-        estimatedReward = calculateReward(agent, currentEpoch);
+        credibility = agentRegistry.getCredibility(agent);
     }
 
     // ============ Internal Functions ============
