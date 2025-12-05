@@ -1,4 +1,3 @@
-```
 import { NavHeader } from '@/components/nav-header'
 import { OracleFeed } from '@/components/oracle-feed'
 
@@ -12,4 +11,3 @@ export default function OraclePage() {
         </div>
     )
 }
-```
