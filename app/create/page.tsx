@@ -197,7 +197,7 @@ export default function CreateAgentPage() {
       <main className="container mx-auto px-4 py-4">
         <div className="mx-auto max-w-6xl">
           <div className="mb-4">
-            <h1 className="text-2xl font-bold">Create Memecoin Pulse Agent</h1>
+            <h1 className="text-3xl font-bold font-pixel">Create Memecoin Pulse Agent</h1>
             <p className="text-sm text-muted-foreground">
               Deploy an AI agent that monitors social pulse and mines $M tokens
             </p>

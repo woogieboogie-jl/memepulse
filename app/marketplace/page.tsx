@@ -94,7 +94,7 @@ export default function MarketplacePage() {
         <div className="w-full max-w-6xl mx-auto">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">Marketplace</h1>
+              <h1 className="text-3xl font-bold font-pixel">Marketplace</h1>
               <p className="text-sm text-muted-foreground">
                 Discover and invest in top-performing memecoin pulse agents
               </p>

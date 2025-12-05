@@ -96,7 +96,7 @@ export default function TradePage() {
           <div className="max-w-full">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold">Manual Trading</h1>
+                <h1 className="text-3xl font-bold font-pixel">Manual Trade</h1>
                 <p className="text-sm text-muted-foreground">Loading...</p>
               </div>
             </div>
@@ -116,7 +116,7 @@ export default function TradePage() {
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold">Manual Trading</h1>
+                <h1 className="text-3xl font-bold font-pixel">Manual Trade</h1>
                 <p className="text-xs sm:text-sm text-muted-foreground">
                   Professional trading terminal with advanced order management
                 </p>
