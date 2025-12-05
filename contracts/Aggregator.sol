@@ -8,8 +8,8 @@ import "./PriceFeed.sol";
 
 /**
  * @title Aggregator
- * @notice Receives agent updates, validates, calculates VWAP, updates PriceFeed
- * @dev Central contract coordinating oracle updates
+ * @notice Receives agent updates, validates, calculates VCWAP, updates PriceFeed
+ * @dev Central contract coordinating oracle updates with Volume-Credibility-Weighted pricing
  */
 contract Aggregator is Ownable, ReentrancyGuard {
     // ============ Structs ============
@@ -149,9 +149,10 @@ contract Aggregator is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Calculate VWAP from last N updates
+     * @notice Calculate VCWAP (Volume-Credibility-Weighted Average Price) from last N updates
+     * @dev VCWAP = Σ(price × weight) / Σ(weight) where weight = volume × credibility × leverage
      * @param feedSymbol Symbol of the feed
-     * @return vwap Calculated VWAP price
+     * @return vcwap Calculated VCWAP price
      */
     function calculateVWAP(string calldata feedSymbol) 
         public 
@@ -173,7 +174,7 @@ contract Aggregator is Ownable, ReentrancyGuard {
             uint256 credibility = agentRegistry.getCredibility(update.agent);
             if (credibility < MIN_CREDIBILITY) credibility = MIN_CREDIBILITY;
             
-            // Weight = volume × credibility × leverage
+            // VCWAP Weight = volume × credibility × leverage
             // credibility is basis points, so divide by 10000
             uint256 weight = (update.volume * credibility * update.leverage) / 10000;
             
