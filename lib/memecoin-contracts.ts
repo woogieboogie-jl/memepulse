@@ -3,6 +3,8 @@
  * 
  * Each memecoin has a dedicated oracle feed contract where AI agents
  * contribute social pulse data and earn $M tokens.
+ * 
+ * All contracts are deployed on MemeCore network.
  */
 
 export interface MemecoinFeedContract {
@@ -10,13 +12,30 @@ export interface MemecoinFeedContract {
     name: string
     emoji: string
     contractAddress: string
-    network: 'Ethereum' | 'Base' | 'Arbitrum'
+    network: 'MemeCore'
     updateFrequency: string
     chainId: number
+    rpcUrl: string
+}
+
+/**
+ * MemeCore Network Configuration
+ */
+export const MEMECORE_NETWORK = {
+    chainId: 12227332,
+    chainName: 'MemeCore',
+    rpcUrl: 'https://hub-rpc.memecore.com',
+    blockExplorer: 'https://memescan.io',
+    nativeCurrency: {
+        name: 'MEME',
+        symbol: 'MEME',
+        decimals: 18,
+    },
 }
 
 /**
  * Central registry of all supported memecoin oracle feed contracts
+ * All contracts are deployed on MemeCore network (Chain ID: 12227332)
  */
 export const MEMECOIN_FEED_CONTRACTS: Record<string, MemecoinFeedContract> = {
     DOGE: {
@@ -24,63 +43,70 @@ export const MEMECOIN_FEED_CONTRACTS: Record<string, MemecoinFeedContract> = {
         name: 'Dogecoin',
         emoji: '🐕',
         contractAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-        network: 'Ethereum',
+        network: 'MemeCore',
         updateFrequency: 'Every 5 minutes',
-        chainId: 1,
+        chainId: MEMECORE_NETWORK.chainId,
+        rpcUrl: MEMECORE_NETWORK.rpcUrl,
     },
     PEPE: {
         symbol: 'PEPE',
         name: 'Pepe',
         emoji: '🐸',
         contractAddress: '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2',
-        network: 'Ethereum',
+        network: 'MemeCore',
         updateFrequency: 'Every 5 minutes',
-        chainId: 1,
+        chainId: MEMECORE_NETWORK.chainId,
+        rpcUrl: MEMECORE_NETWORK.rpcUrl,
     },
     SHIB: {
         symbol: 'SHIB',
         name: 'Shiba Inu',
         emoji: '🐕‍🦺',
         contractAddress: '0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE',
-        network: 'Ethereum',
+        network: 'MemeCore',
         updateFrequency: 'Every 5 minutes',
-        chainId: 1,
+        chainId: MEMECORE_NETWORK.chainId,
+        rpcUrl: MEMECORE_NETWORK.rpcUrl,
     },
     FLOKI: {
         symbol: 'FLOKI',
         name: 'Floki',
         emoji: '🐺',
         contractAddress: '0xcf0C122c6b73ff809C693DB761e7BaeBe62b6a2E',
-        network: 'Ethereum',
+        network: 'MemeCore',
         updateFrequency: 'Every 5 minutes',
-        chainId: 1,
+        chainId: MEMECORE_NETWORK.chainId,
+        rpcUrl: MEMECORE_NETWORK.rpcUrl,
     },
     WIF: {
         symbol: 'WIF',
         name: 'dogwifhat',
         emoji: '🎩',
         contractAddress: '0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36',
-        network: 'Ethereum',
+        network: 'MemeCore',
         updateFrequency: 'Every 5 minutes',
-        chainId: 1,
+        chainId: MEMECORE_NETWORK.chainId,
+        rpcUrl: MEMECORE_NETWORK.rpcUrl,
     },
     BONK: {
         symbol: 'BONK',
         name: 'Bonk',
         emoji: '💥',
         contractAddress: '0xDeDC5E5d2d9B94991f8E86B46F6EC0FDE1D3C813',
-        network: 'Ethereum',
+        network: 'MemeCore',
         updateFrequency: 'Every 5 minutes',
-        chainId: 1,
+        chainId: MEMECORE_NETWORK.chainId,
+        rpcUrl: MEMECORE_NETWORK.rpcUrl,
     },
     BTC: {
         symbol: 'BTC',
         name: 'Bitcoin',
         emoji: '₿',
         contractAddress: '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6',
-        network: 'Ethereum',
+        network: 'MemeCore',
         updateFrequency: 'Every 5 minutes',
-        chainId: 1,
+        chainId: MEMECORE_NETWORK.chainId,
+        rpcUrl: MEMECORE_NETWORK.rpcUrl,
     },
 }
 
