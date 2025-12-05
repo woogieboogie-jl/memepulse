@@ -40,6 +40,10 @@ contract Aggregator is Ownable, ReentrancyGuard {
     // Track processed Orderly tx hashes to prevent replay
     mapping(bytes32 => bool) public processedTxHashes;
 
+    // Maximum allowed volume per update (prevents overflow)
+    // $100 trillion at 8 decimals = 10^19
+    uint256 public constant MAX_VOLUME = 10**19;
+    
     // ============ Events ============
 
     event UpdateSubmitted(
@@ -92,6 +96,7 @@ contract Aggregator is Ownable, ReentrancyGuard {
         // Validate
         require(agentRegistry.isRegistered(agent, feedSymbol), "Agent not registered");
         require(report.volume > 0, "Volume must be > 0");
+        require(report.volume <= MAX_VOLUME, "Volume too high");  // Prevent overflow
         require(report.leverage > 0, "Leverage must be > 0");
         require(report.timestamp <= block.timestamp, "Future timestamp");
         require(!processedTxHashes[report.orderlyTxHash], "Already processed");
@@ -183,7 +188,12 @@ contract Aggregator is Ownable, ReentrancyGuard {
             totalWeight += weight;
         }
         
-        return totalWeight > 0 ? weightedSum / totalWeight : 0;
+        // Prevent division by zero
+        if (totalWeight == 0) {
+            revert("No valid updates for VCWAP");
+        }
+        
+        return weightedSum / totalWeight;
     }
 
     /**
