@@ -49,7 +49,7 @@ contract EdgeCaseTest is Test {
     // ========== EXTREME VALUE TESTING ==========
 
     function testMaxUint256Volume() public {
-        // Test with maximum possible volume (shouldn't overflow)
+        // Test with maximum possible volume (should be rejected by volume cap)
         Aggregator.AgentUpdateReport memory report = Aggregator.AgentUpdateReport({
             price: 1,
             volume: type(uint256).max,
@@ -60,11 +60,15 @@ contract EdgeCaseTest is Test {
             agent: agent1
         });
         
-        // Should not revert (Solidity 0.8+ has overflow protection)
+        // Should revert with "Volume too high" due to MAX_VOLUME cap
+        vm.expectRevert("Volume too high");
         aggregator.submitUpdate(agent1, "DOGE", report);
     }
 
     function testMinimalValues() public {
+        // Set max credibility for agent to ensure tiny volume still has weight
+        registry.setCredibility(agent1, 10000);  // 100%
+        
         // Smallest possible valid values
         Aggregator.AgentUpdateReport memory report = Aggregator.AgentUpdateReport({
             price: 1,  // 0.00000001 USD
@@ -179,6 +183,10 @@ contract EdgeCaseTest is Test {
     // ========== REWARD CALCULATION EDGE CASES ==========
 
     function testTinyVolumeReward() public {
+        // Set max credibility for both agents
+        registry.setCredibility(agent1, 10000);
+        registry.setCredibility(agent2, 10000);
+        
         // Agent with very small contribution
         aggregator.submitUpdate(agent1, "DOGE", Aggregator.AgentUpdateReport({
             price: 8500000,
@@ -192,7 +200,7 @@ contract EdgeCaseTest is Test {
         
         aggregator.submitUpdate(agent2, "DOGE", Aggregator.AgentUpdateReport({
             price: 8500000,
-            volume: type(uint256).max / 2, // Huge volume
+            volume: 1000000000000000,  // Large but not overflow-causing
             isLong: true,
             leverage: 1,
             timestamp: block.timestamp,

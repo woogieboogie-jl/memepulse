@@ -188,11 +188,14 @@ contract Aggregator is Ownable, ReentrancyGuard {
             totalWeight += weight;
         }
         
-        // Prevent division by zero
+        // Check if we have any valid updates with minimum credibility
         if (totalWeight == 0) {
+            // If no updates have sufficient credibility weight, revert
             revert("No valid updates for VCWAP");
         }
         
+        // Even with tiny weights, as long as minCredibility is met, allow calculation
+        // This handles edge cases like volume=1
         return weightedSum / totalWeight;
     }
 
