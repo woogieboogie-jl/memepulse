@@ -129,7 +129,7 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
             <NavHeader />
 
             <main className="container mx-auto px-4 py-8">
-                <div className="max-w-6xl mx-auto space-y-6">
+                <div className="max-w-6xl mx-auto space-y-4">
 
                     {/* Hero Section */}
                     <Card>
@@ -248,50 +248,26 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
                         </Card>
                     </div>
 
-                    {/* Top Contributors */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Top Contributors</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-3">
-                                {feedStats.topContributors.map((contributor, index) => (
-                                    <div
-                                        key={contributor.agentId}
-                                        className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
-                                                #{index + 1}
-                                            </div>
-                                            <div>
-                                                <p className="font-semibold">{contributor.agentName}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {contributor.updates} updates • {contributor.accuracy}% accuracy
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <Button variant="outline" size="sm">
-                                            View Agent
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Two-Column Layout: Agents Table + Live Updates */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Left: Registered Agents Table (2/3 width on desktop) */}
-                        <div className="lg:col-span-2">
-                            <AgentFeedTable agents={feedAgents} symbol={symbol} />
+                    {/* Compact Charts + Live Feed Section */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        {/* Charts - 2 columns on desktop */}
+                        <div className="lg:col-span-2 space-y-4">
+                            <FeedAnalyticsCharts
+                                symbol={symbol}
+                                currentPulse={feedStats.currentPulse}
+                                averageAccuracy={feedStats.averageAccuracy}
+                                updatesToday={feedStats.updatesToday}
+                            />
                         </div>
 
-                        {/* Right: Live Oracle Updates (1/3 width on desktop) */}
+                        {/* Live Updates - 1 column sidebar */}
                         <div className="lg:col-span-1">
-                            <OracleUpdateFeed symbol={symbol} limit={50} />
+                            <OracleUpdateFeed symbol={symbol} limit={30} />
                         </div>
                     </div>
+
+                    {/* Agent Table - Full Width */}
+                    <AgentFeedTable agents={feedAgents} symbol={symbol} />
 
                 </div>
             </main>
