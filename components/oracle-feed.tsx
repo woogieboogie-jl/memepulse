@@ -114,67 +114,64 @@ export function OracleFeed() {
     )
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold font-pixel mb-2">Feeds</h1>
-                    <p className="text-muted-foreground">
-                        Real-time memecoin pulse monitoring powered by social sentiment and on-chain data
-                    </p>
+        <div className="w-full max-w-6xl mx-auto">
+            <div className="space-y-6">
+                {/* Header */}
+                <div className="flex flex-col gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold font-pixel">Memecoin Pulses</h1>
+                        <p className="text-sm text-muted-foreground">
+                            Track live social sentiment oracle feeds for trending memecoins
+                        </p>
+                    </div>
+
+                    {/* Filters */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="relative flex-1 max-w-md">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                placeholder="Search memecoins..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-9"
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <Filter className="h-4 w-4 text-muted-foreground" />
+                            <Select value={sortBy} onValueChange={setSortBy}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="social">Social Pulse</SelectItem>
+                                    <SelectItem value="apy">Mining APY</SelectItem>
+                                    <SelectItem value="price">Price Change</SelectItem>
+                                    <SelectItem value="volume">24h Volume</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Controls */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search memecoins..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9"
-                        />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Filter className="h-4 w-4 text-muted-foreground" />
-                        <Select value={sortBy} onValueChange={setSortBy}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="social">Social Pulse</SelectItem>
-                                <SelectItem value="apy">Mining APY</SelectItem>
-                                <SelectItem value="price">Price Change</SelectItem>
-                                <SelectItem value="volume">Volume</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-            </div>
-
-            {/* Main Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Pulse Grid - 2/3 width on large screens */}
-                <div className="lg:col-span-2 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {filteredCoins.map((coin) => (
-                            <PulseCard key={coin.symbol} {...coin} />
-                        ))}
-                    </div>
-
-                    {filteredCoins.length === 0 && (
-                        <div className="text-center py-12 text-muted-foreground">
-                            No memecoins found matching "{searchQuery}"
+                {/* Feed Grid */}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {filteredCoins.length > 0 ? (
+                        filteredCoins.map((coin) => (
+                            <PulseCard
+                                key={coin.symbol}
+                                {...coin}
+                            />
+                        ))
+                    ) : (
+                        <div className="col-span-full text-center py-12">
+                            <p className="text-muted-foreground">No memecoins found matching your search</p>
                         </div>
                     )}
                 </div>
 
-                {/* Trading Feed - 1/3 width on large screens */}
-                <div className="lg:col-span-1">
-                    <div className="sticky top-4">
-                        <TradingEventFeed />
-                    </div>
-                </div>
+                {/* Live Trading Feed */}
+                <TradingEventFeed />
             </div>
         </div>
     )
