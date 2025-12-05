@@ -1,1 +1,1 @@
-testCompleteFlow|testMultiAgentVCWAPConsensus|testRewardsFromConfig
+testCredibilityNeverExceeds100Percent|testLogarithmicCredibilityGrowth|testRecordUpdate|testCompleteFlow|testRewardsFromConfig

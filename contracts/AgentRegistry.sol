@@ -11,6 +11,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract AgentRegistry is Ownable {
     // ============ State Variables ============
 
+    // Role-based access control
+    address public aggregator;
+    address public distributor;
+
     // agent => feed symbol => registered
     mapping(address => mapping(string => bool)) public registrations;
     
@@ -40,28 +44,53 @@ contract AgentRegistry is Ownable {
 
     // ============ Events ============
 
-    event AgentRegistered(
-        address indexed agent,
-        string indexed feedSymbol,
-        uint256 timestamp
-    );
-
-    event CredibilityUpdated(
-        address indexed agent,
-        uint256 oldScore,
-        uint256 newScore
-    );
+    event AgentRegistered(address indexed agent, string indexed feedSymbol, uint256 timestamp);
+    event CredibilityUpdated(address indexed agent, uint256 oldScore, uint256 newScore);
+    event AggregatorSet(address indexed aggregator);
+    event DistributorSet(address indexed distributor);
     
     event UpdateRecorded(
         address indexed agent,
         uint256 newCount
     );
 
+    // ============ Modifiers ============
+
+    modifier onlyAggregator() {
+        require(msg.sender == aggregator, "Only aggregator");
+        _;
+    }
+
+    modifier onlyDistributor() {
+        require(msg.sender == distributor, "Only distributor");
+        _;
+    }
+
     // ============ Constructor ============
 
     constructor() Ownable(msg.sender) {}
 
     // ============ External Functions ============
+
+    /**
+     * @notice Set aggregator address (owner only)
+     * @param _aggregator Address of Aggregator contract
+     */
+    function setAggregator(address _aggregator) external onlyOwner {
+        require(_aggregator != address(0), "Invalid aggregator");
+        aggregator = _aggregator;
+        emit AggregatorSet(_aggregator);
+    }
+
+    /**
+     * @notice Set distributor address (owner only)
+     * @param _distributor Address of MTokenDistributor contract
+     */
+    function setDistributor(address _distributor) external onlyOwner {
+        require(_distributor != address(0), "Invalid distributor");
+        distributor = _distributor;
+        emit DistributorSet(_distributor);
+    }
 
     /**
      * @notice Register an agent to a specific feed
@@ -129,17 +158,17 @@ contract AgentRegistry is Ownable {
     }
     
     /**
-     * @notice Increment epoch (called by MTokenDistributor)
+     * @notice Increment epoch (distributor only)
      */
-    function incrementEpoch() external onlyOwner {
+    function incrementEpoch() external onlyDistributor {
         currentEpoch++;
     }
 
     /**
-     * @notice Record an update submission (called by Aggregator)
+     * @notice Record an update from an agent (aggregator only)
      * @param agent Address of the agent
      */
-    function recordUpdate(address agent) external onlyOwner {
+    function recordUpdate(address agent) external onlyAggregator {
         updateCount[agent]++;
         emit UpdateRecorded(agent, updateCount[agent]);
     }

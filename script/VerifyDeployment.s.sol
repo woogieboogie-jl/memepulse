@@ -53,6 +53,6 @@ contract VerifyDeployment is Script {
         console.log("  price:", price);
         
         console.log("");
-        console.log("✅ All contracts deployed and responding!");
+        console.log("[OK] All contracts deployed and responding!");
     }
 }

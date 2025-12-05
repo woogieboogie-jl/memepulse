@@ -45,7 +45,7 @@ contract TestAgentInteraction is Script {
             });
             
             aggregator.submitUpdate(agentAddress, "DOGE", report);
-            console.log("✅ Update submitted successfully!");
+            console.log("[SUCCESS] Update submitted successfully!");
             
             // Check VCWAP
             uint256 vcwap = aggregator.calculateVWAP("DOGE");

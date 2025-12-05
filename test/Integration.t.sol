@@ -41,17 +41,16 @@ contract IntegrationTest is Test {
         aggregator.setPriceFeed("DOGE", address(priceFeed));
         mToken.setDistributor(address(distributor));
         distributor.setAggregator(address(aggregator));
-        // NOTE: Keep registry ownership with test contract so we can register agents
-        // registry.transferOwnership(address(aggregator));
+        
+        // Set roles on AgentRegistry
+        registry.setAggregator(address(aggregator));
+        registry.setDistributor(address(distributor));
     }
 
     function testCompleteFlow() public {
-        // 1. Register agents BEFORE transferring ownership
+        // 1. Register agents
         registry.registerAgent(agent1, "DOGE");
         registry.registerAgent(agent2, "DOGE");
-        
-        // Transfer ownership to Distributor so it can increment epochs
-        registry.transferOwnership(address(distributor));
         
         assertTrue(registry.isRegistered(agent1, "DOGE"));
         assertTrue(registry.isRegistered(agent2, "DOGE"));
@@ -121,7 +120,6 @@ contract IntegrationTest is Test {
 
     function testCredibilityGrowthOverEpochs() public {
         registry.registerAgent(agent1, "DOGE");
-        registry.transferOwnership(address(distributor));  // Transfer to distributor for epoch increment
         
         // Epoch 1: 50%
         uint256 cred1 = registry.getCredibility(agent1);
@@ -152,7 +150,6 @@ contract IntegrationTest is Test {
         registry.registerAgent(agent1, "DOGE");
         registry.registerAgent(agent2, "DOGE");
         registry.registerAgent(agent3, "DOGE");
-        registry.transferOwnership(address(distributor));  // Transfer to distributor
         
         // Submit updates with different prices
         aggregator.submitUpdate(agent1, "DOGE", Aggregator.AgentUpdateReport({

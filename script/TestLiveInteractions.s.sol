@@ -53,12 +53,12 @@ contract TestLiveInteractions is Script {
         console.log("Step 1: Registering agents...");
         registry.registerAgent(agent1, "DOGE");
         registry.registerAgent(agent2, "DOGE");
-        console.log("✅ Agents registered");
+        console.log("[OK] Agents registered");
         console.log("");
         
         // Transfer registry ownership to distributor for epoch management
         registry.transferOwnership(address(distributor));
-        console.log("✅ Registry ownership transferred to Distributor");
+        console.log("[OK] Registry ownership transferred to Distributor");
         console.log("");
         
         vm.stopBroadcast();
@@ -78,7 +78,7 @@ contract TestLiveInteractions is Script {
         });
         
         aggregator.submitUpdate(agent1, "DOGE", report1);
-        console.log("✅ Agent 1 update submitted");
+        console.log("[OK] Agent 1 update submitted");
         console.log("");
         
         vm.stopBroadcast();
@@ -97,7 +97,7 @@ contract TestLiveInteractions is Script {
         });
         
         aggregator.submitUpdate(agent2, "DOGE", report2);
-        console.log("✅ Agent 2 update submitted");
+        console.log("[OK] Agent 2 update submitted");
         console.log("");
         
         vm.stopBroadcast();
@@ -117,7 +117,7 @@ contract TestLiveInteractions is Script {
         console.log("Step 5: Advancing epoch...");
         vm.warp(block.timestamp + 1 weeks);
         distributor.startNewEpoch();
-        console.log("✅ New epoch started");
+        console.log("[OK] New epoch started");
         console.log("  Current epoch:", distributor.currentEpoch());
         console.log("");
         
@@ -133,7 +133,7 @@ contract TestLiveInteractions is Script {
         if (claimable1 > 0) {
             distributor.claimRewards(1);
             uint256 balance1 = mToken.balanceOf(agent1);
-            console.log("✅ Claimed! Balance:", balance1 / 10**18, "M");
+            console.log("[OK] Claimed! Balance:", balance1 / 10**18, "M");
         }
         console.log("");
         
@@ -148,13 +148,13 @@ contract TestLiveInteractions is Script {
         if (claimable2 > 0) {
             distributor.claimRewards(1);
             uint256 balance2 = mToken.balanceOf(agent2);
-            console.log("✅ Claimed! Balance:", balance2 / 10**18, "M");
+            console.log("[OK] Claimed! Balance:", balance2 / 10**18, "M");
         }
         console.log("");
         
         vm.stopBroadcast();
         
         console.log("=== Live Testing Complete! ===");
-        console.log("✅ All agent interactions successful on Anvil!");
+        console.log("[OK] All agent interactions successful on Anvil!");
     }
 }

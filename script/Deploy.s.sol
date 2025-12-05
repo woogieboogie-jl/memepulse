@@ -75,14 +75,20 @@ contract DeployScript is Script {
 
         // 7. Wire contracts together
         console.log("Wiring contracts...");
+        
+        // Set roles on AgentRegistry
+        registry.setAggregator(address(aggregator));
+        console.log("  AgentRegistry aggregator set");
+        
+        registry.setDistributor(address(distributor));
+        console.log("  AgentRegistry distributor set");
+        
+        // Wire other contracts
         mToken.setDistributor(address(distributor));
         console.log("  MToken distributor set");
         
         distributor.setAggregator(address(aggregator));
         console.log("  Distributor aggregator set");
-        
-        registry.transferOwnership(address(aggregator));
-        console.log("  AgentRegistry ownership transferred to Aggregator");
         console.log("");
 
         vm.stopBroadcast();

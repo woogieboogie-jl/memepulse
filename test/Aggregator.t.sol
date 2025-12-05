@@ -31,7 +31,9 @@ contract AggregatorTest is Test {
         // Configure
         priceFeed.setAggregator(address(aggregator));
         aggregator.setPriceFeed("DOGE", address(priceFeed));
-        registry.transferOwnership(address(aggregator));
+        
+        // Set roles on registry
+        registry.setAggregator(address(aggregator));
         
         // Register agents
         registry.registerAgent(agent1, "DOGE");
