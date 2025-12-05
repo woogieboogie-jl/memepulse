@@ -92,7 +92,7 @@ contract Aggregator is Ownable, ReentrancyGuard {
         // Validate
         require(agentRegistry.isRegistered(agent, feedSymbol), "Agent not registered");
         require(report.volume > 0, "Volume must be > 0");
-        require(report.leverage >= 1 && report.leverage <= 10, "Invalid leverage");
+        require(report.leverage > 0, "Leverage must be > 0");
         require(report.timestamp <= block.timestamp, "Future timestamp");
         require(!processedTxHashes[report.orderlyTxHash], "Already processed");
         require(address(priceFeeds[feedSymbol]) != address(0), "Feed not found");
@@ -128,9 +128,8 @@ contract Aggregator is Ownable, ReentrancyGuard {
             // Call recordContribution on distributor
             (bool success, ) = mTokenDistributor.call(
                 abi.encodeWithSignature(
-                    "recordContribution(address,string,uint256)",
+                    "recordContribution(address,uint256)",
                     agent,
-                    feedSymbol,
                     report.volume
                 )
             );

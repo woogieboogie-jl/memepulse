@@ -87,18 +87,35 @@ contract AggregatorTest is Test {
         aggregator.submitUpdate(agent1, "DOGE", report);
     }
 
-    function testRejectInvalidLeverage() public {
+    function testHighLeverageAccepted() public {
+        // Orderly supports up to 50x leverage
         Aggregator.AgentUpdateReport memory report = Aggregator.AgentUpdateReport({
-            price: 8524000,
+            price: 8500000,
             volume: 100000000000,
             isLong: true,
-            leverage: 15, // > 10
+            leverage: 50,  // High leverage should work
             timestamp: block.timestamp,
             orderlyTxHash: keccak256("tx1"),
             agent: agent1
         });
         
-        vm.expectRevert("Invalid leverage");
+        // Should NOT revert
+        aggregator.submitUpdate(agent1, "DOGE", report);
+        assertEq(aggregator.getUpdateCount("DOGE"), 1);
+    }
+    
+    function testZeroLeverageRejected() public {
+        Aggregator.AgentUpdateReport memory report = Aggregator.AgentUpdateReport({
+            price: 8500000,
+            volume: 100000000000,
+            isLong: true,
+            leverage: 0,  // Zero leverage invalid
+            timestamp: block.timestamp,
+            orderlyTxHash: keccak256("tx1"),
+            agent: agent1
+        });
+        
+        vm.expectRevert("Leverage must be > 0");
         aggregator.submitUpdate(agent1, "DOGE", report);
     }
 

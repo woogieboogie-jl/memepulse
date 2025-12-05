@@ -119,7 +119,7 @@ contract MTokenDistributor is Ownable, ReentrancyGuard {
     function claimRewards(uint256 epoch) external nonReentrant {
         require(epoch < currentEpoch, "Epoch not ended");
         require(!claimed[epoch][msg.sender], "Already claimed");
-        require(agentUpdates[epoch][msg.sender] > 0, "No contributions");
+        require(agentVolume[epoch][msg.sender] > 0, "No contributions");
         
         uint256 reward = calculateReward(msg.sender, epoch);
         require(reward > 0, "No rewards");
