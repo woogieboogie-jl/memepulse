@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 
-import { Key, AlertTriangle, Coins } from 'lucide-react'
+import { Key, AlertTriangle, Coins, FileText } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { KeyRenewalModal } from '@/components/modals/key-renewal-modal'
 
@@ -175,6 +175,18 @@ export function NavHeader() {
             >
               Manual Trade
               {pathname === '/trade' && (
+                <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-primary rounded-full" />
+              )}
+            </Link>
+            <Link
+              href="/docs"
+              className={`text-sm font-medium transition-colors relative ${pathname === '/docs'
+                ? 'text-primary font-semibold'
+                : 'text-muted-foreground hover:text-foreground'
+                }`}
+            >
+              Docs
+              {pathname === '/docs' && (
                 <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-primary rounded-full" />
               )}
             </Link>
