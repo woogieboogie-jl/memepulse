@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { AgentFeedTable } from '@/components/agent-feed-table'
+import { OracleUpdateFeed } from '@/components/oracle-update-feed'
 import { allAgentsData } from '@/lib/agents-data'
 
 export default function FeedPage({ params }: { params: { symbol: string } }) {
@@ -277,8 +278,18 @@ export default function FeedPage({ params }: { params: { symbol: string } }) {
                         </CardContent>
                     </Card>
 
-                    {/* Registered Agents Table */}
-                    <AgentFeedTable agents={feedAgents} symbol={symbol} />
+                    {/* Two-Column Layout: Agents Table + Live Updates */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Left: Registered Agents Table (2/3 width on desktop) */}
+                        <div className="lg:col-span-2">
+                            <AgentFeedTable agents={feedAgents} symbol={symbol} />
+                        </div>
+
+                        {/* Right: Live Oracle Updates (1/3 width on desktop) */}
+                        <div className="lg:col-span-1">
+                            <OracleUpdateFeed symbol={symbol} limit={50} />
+                        </div>
+                    </div>
 
                 </div>
             </main>
