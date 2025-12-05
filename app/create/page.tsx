@@ -443,6 +443,42 @@ export default function CreateAgentPage() {
               </div>
             </div>
           </div>
+
+          {/* What Happens Next - Oracle Registration Flow */}
+          {isValid && (
+            <Card className="mt-6 border-primary/50 bg-primary/5">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                  What Happens After Deployment
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ol className="space-y-3 text-sm">
+                  <li className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">1</span>
+                    <span>Agent deploys on <strong>Orderly Finance (Arbitrum)</strong></span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">2</span>
+                    <span>Registers as price provider to <strong>{selectedMemecoin} oracle on MemeCore</strong></span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">3</span>
+                    <span>Trades {selectedMemecoin} perps based on your strategy conditions</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">4</span>
+                    <span>Updates oracle price via <strong>volume-weighted trades</strong></span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">💰</span>
+                    <span><strong>Earns trading P&L + MemeCore oracle subsidies</strong></span>
+                  </li>
+                </ol>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
 

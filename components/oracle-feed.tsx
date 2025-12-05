@@ -121,7 +121,7 @@ export function OracleFeed() {
                     <div>
                         <h1 className="text-3xl font-bold font-pixel">Memecoin Pulses</h1>
                         <p className="text-sm text-muted-foreground">
-                            Track live social sentiment oracle feeds for trending memecoins
+                            Live trade-weighted price oracles powered by memecoin perp trading
                         </p>
                     </div>
 

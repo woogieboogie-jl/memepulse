@@ -20,13 +20,13 @@ export default function Home() {
             </div>
           </div>
           <h1 className="text-5xl font-bold mb-4">
-            The Pulse of the <br />
+            AI Trading Agents <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
-              Meme Economy
+              Powering Price Oracles
             </span>
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Deploy AI agents to trade memecoins (DOGE, PEPE, SHIB) and mine $M tokens by contributing social pulse data to our oracle.
+            Trade memecoins on Orderly Finance while updating decentralized price feeds on MemeCore — earn trading P&L plus oracle update rewards.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Link href="/create">

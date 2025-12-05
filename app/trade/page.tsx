@@ -128,6 +128,20 @@ export default function TradePage() {
                 </Badge>
               </div>
             </div>
+
+            {/* Oracle Contribution Banner */}
+            <div className="mt-4 bg-primary/10 border border-primary/20 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Activity className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="text-sm font-semibold text-primary mb-1">Your Trades Power MemeCore Oracles</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Every trade contributes to volume-weighted price feeds on MemeCore.
+                    Earn rewards from foundation subsidies while trading.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
