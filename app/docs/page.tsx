@@ -39,6 +39,184 @@ export default function DocsPage() {
                         </Card>
                     </div>
 
+                    {/* System Architecture Section - NEW! */}
+                    <Card className="mb-6 border-primary/30" id="architecture">
+                        <CardHeader>
+                            <div className="flex items-center gap-2">
+                                <Database className="h-5 w-5 text-primary" />
+                                <CardTitle>System Architecture</CardTitle>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {/* Dual-Chain Overview */}
+                            <div>
+                                <h3 className="text-lg font-semibold mb-3">Dual-Chain Design</h3>
+                                <div className="bg-muted/30 rounded-lg p-4 space-y-4">
+                                    <p className="text-sm text-muted-foreground">
+                                        MemePulse operates across two blockchain networks to optimize for different use cases:
+                                    </p>
+
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div className="bg-background rounded-lg p-4 border border-blue-500/20">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                                    <Zap className="h-4 w-4 text-blue-500" />
+                                                </div>
+                                                <h4 className="font-semibold">Trading Layer</h4>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground mb-2">
+                                                <strong>Arbitrum (via Orderly Finance)</strong>
+                                            </p>
+                                            <ul className="text-xs space-y-1 text-muted-foreground">
+                                                <li>• Agent perp trading execution</li>
+                                                <li>• Manual trading interface</li>
+                                                <li>• User deposits & delegations</li>
+                                                <li>• Low-latency, high-throughput</li>
+                                            </ul>
+                                        </div>
+
+                                        <div className="bg-background rounded-lg p-4 border border-primary/20">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                                    <Database className="h-4 w-4 text-primary" />
+                                                </div>
+                                                <h4 className="font-semibold">Oracle Layer</h4>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground mb-2">
+                                                <strong>MemeCore Network</strong>
+                                            </p>
+                                            <ul className="text-xs space-y-1 text-muted-foreground">
+                                                <li>• Price oracle contracts (1 per coin)</li>
+                                                <li>• Agent registration as providers</li>
+                                                <li>• VWAP price updates</li>
+                                                <li>• Foundation subsidy distribution</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+                                        <h4 className="font-semibold text-sm mb-2">Data Flow</h4>
+                                        <div className="text-xs space-y-1 font-mono text-muted-foreground">
+                                            <div>1. Agent/Manual trades execute on <strong>Arbitrum (Orderly)</strong></div>
+                                            <div>2. VWAP calculated from trade volume + time weight</div>
+                                            <div>3. Price update written to oracle on <strong>MemeCore</strong></div>
+                                            <div>4. Contributors earn foundation subsidies</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* VWAP Mechanism */}
+                            <div>
+                                <h3 className="text-lg font-semibold mb-3">VWAP Price Mechanism</h3>
+                                <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                                    <p className="text-sm text-muted-foreground">
+                                        Oracle prices are updated using <strong>Volume-Weighted Average Price (VWAP)</strong> from live perp trading:
+                                    </p>
+
+                                    <div className="bg-background rounded-lg p-3 border">
+                                        <code className="text-xs block">
+                                            VWAP = Σ(Price × Volume × Time Weight) / Σ(Volume × Time Weight)
+                                        </code>
+                                    </div>
+
+                                    <div className="grid md:grid-cols-3 gap-3 text-xs">
+                                        <div className="bg-accent/10 rounded p-3">
+                                            <strong className="block mb-1">Volume Weight</strong>
+                                            <span className="text-muted-foreground">Larger trades have more influence on oracle price</span>
+                                        </div>
+                                        <div className="bg-accent/10 rounded p-3">
+                                            <strong className="block mb-1">Time Weight</strong>
+                                            <span className="text-muted-foreground">Recent trades weighted more than older trades</span>
+                                        </div>
+                                        <div className="bg-accent/10 rounded p-3">
+                                            <strong className="block mb-1">Result</strong>
+                                            <span className="text-muted-foreground">Manipulation-resistant, market-accurate pricing</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Agent Lifecycle */}
+                            <div>
+                                <h3 className="text-lg font-semibold mb-3">Agent Registration Flow</h3>
+                                <div className="bg-muted/30 rounded-lg p-4">
+                                    <ol className="space-y-3">
+                                        <li className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">1</span>
+                                            <div>
+                                                <strong className="text-sm">Agent Creation</strong>
+                                                <p className="text-xs text-muted-foreground mt-1">User deploys agent via Orderly Finance (Arbitrum)</p>
+                                            </div>
+                                        </li>
+                                        <li className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">2</span>
+                                            <div>
+                                                <strong className="text-sm">Oracle Registration</strong>
+                                                <p className="text-xs text-muted-foreground mt-1">Agent public key registered to memecoin oracle on MemeCore</p>
+                                            </div>
+                                        </li>
+                                        <li className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">3</span>
+                                            <div>
+                                                <strong className="text-sm">Trading Activity</strong>
+                                                <p className="text-xs text-muted-foreground mt-1">Agent executes perp trades based on strategy conditions</p>
+                                            </div>
+                                        </li>
+                                        <li className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">4</span>
+                                            <div>
+                                                <strong className="text-sm">Oracle Updates</strong>
+                                                <p className="text-xs text-muted-foreground mt-1">VWAP calculated and written to MemeCore oracle contract</p>
+                                            </div>
+                                        </li>
+                                        <li className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">💰</span>
+                                            <div>
+                                                <strong className="text-sm">Dual Revenue</strong>
+                                                <p className="text-xs text-muted-foreground mt-1">Trading P&L + MemeCore foundation oracle subsidies</p>
+                                            </div>
+                                        </li>
+                                    </ol>
+                                </div>
+                            </div>
+
+                            {/* Incentive Model */}
+                            <div>
+                                <h3 className="text-lg font-semibold mb-3">Incentive Model</h3>
+                                <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                                    <p className="text-sm text-muted-foreground">
+                                        Contributors earn rewards from two sources:
+                                    </p>
+
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                                            <h4 className="font-semibold text-sm mb-2 text-green-500">1. Trading P&L</h4>
+                                            <ul className="text-xs space-y-1 text-muted-foreground">
+                                                <li>• Profit/loss from perp trades on Orderly</li>
+                                                <li>• Agent strategy performance</li>
+                                                <li>• Delegators share in agent returns</li>
+                                            </ul>
+                                        </div>
+
+                                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                                            <h4 className="font-semibold text-sm mb-2 text-blue-500">2. Oracle Subsidies</h4>
+                                            <ul className="text-xs space-y-1 text-muted-foreground">
+                                                <li>• MemeCore foundation rewards</li>
+                                                <li>• Based on oracle update frequency</li>
+                                                <li>• Available to agents & manual traders</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-background rounded-lg p-3 border text-xs">
+                                        <strong>Example:</strong> Agent generates $100 trading profit + $15 oracle subsidies = <strong>$115 total return</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
                     {/* Smart Contracts Section */}
                     <Card className="mb-6" id="contracts">
                         <CardHeader>
