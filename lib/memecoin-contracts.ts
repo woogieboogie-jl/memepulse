@@ -25,7 +25,7 @@ export const MEMECORE_NETWORK = {
     chainId: 12227332,
     chainName: 'MemeCore',
     rpcUrl: 'https://hub-rpc.memecore.com',
-    blockExplorer: 'https://memescan.io',
+    blockExplorer: 'https://formicarium.memecorescan.io',
     nativeCurrency: {
         name: 'MEME',
         symbol: 'MEME',

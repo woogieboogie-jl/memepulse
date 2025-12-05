@@ -190,8 +190,8 @@ export default function DocsPage() {
                                             <span className="text-muted-foreground">Currency Symbol:</span>
                                             <span className="font-mono">MEME</span>
                                             <span className="text-muted-foreground">Block Explorer:</span>
-                                            <code className="bg-muted px-2 py-0.5 roun ded font-mono text-[10px]">
-                                                https://memescan.io
+                                            <code className="bg-muted px-2 py-0.5 rounded font-mono text-[10px]">
+                                                https://formicarium.memecorescan.io
                                             </code>
                                         </div>
                                     </div>
