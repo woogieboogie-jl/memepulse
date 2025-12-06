@@ -148,51 +148,70 @@ interface CustomTooltipProps {
   agents: AgentData[]
 }
 
-const CustomTooltip = ({ active, payload, agents }: CustomTooltipProps) => {
-  const router = useRouter()
-
+const CustomTooltip = ({ active, payload, label, agents }: CustomTooltipProps) => {
   if (!active || !payload || payload.length === 0) return null
 
-  const agent = agents.find(a => a.id === payload[0].dataKey)
-  if (!agent) return null
+  // Sort by value descending to show best performers first
+  const sortedPayload = [...payload].sort((a, b) => (b.value || 0) - (a.value || 0))
+  const isDemo = agents[0]?.id.startsWith('demo-')
 
-  const isDemo = agent.id.startsWith('demo-')
+  // Format date from timestamp
+  const dateStr = label ? new Date(label as number).toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }) : ''
 
   return (
-    <Card className="border-2 shadow-xl" style={{ borderColor: agent.color }}>
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <div
-            className="h-3 w-3 rounded-full"
-            style={{ backgroundColor: agent.color }}
-          />
-          <p className="font-semibold text-lg">{agent.name}</p>
+    <Card className="border border-border shadow-xl bg-card/95 backdrop-blur">
+      <CardContent className="p-3 space-y-2">
+        {/* Header with date */}
+        <div className="flex items-center justify-between border-b border-border pb-2 mb-1">
+          <span className="text-xs font-medium text-muted-foreground">{dateStr}</span>
           {isDemo && (
-            <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded">DEMO</span>
+            <span className="text-[9px] bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-1.5 py-0.5 rounded">DEMO</span>
           )}
         </div>
 
-        <div className="space-y-1">
-          <div className="flex justify-between gap-6">
-            <span className="text-sm text-muted-foreground">Account Value:</span>
-            <span className="font-bold text-accent">${payload[0].value.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between gap-6">
-            <span className="text-sm text-muted-foreground">Win Rate:</span>
-            <span className="font-semibold">{agent.winRate ?? 0}%</span>
-          </div>
-        </div>
+        {/* All agents comparison */}
+        <div className="space-y-1.5">
+          {sortedPayload.map((entry: any, index: number) => {
+            const agent = agents.find(a => a.id === entry.dataKey)
+            if (!agent || entry.value === undefined) return null
+            
+            const pnl = entry.value - 10000
+            const pnlPercent = ((entry.value - 10000) / 10000) * 100
 
-        {!isDemo && agent.address && (
-          <Button
-            size="sm"
-            className="w-full"
-            onClick={() => router.push(`/agent/${agent.feedSymbol}-${agent.address}-0`)}
-          >
-            View Details
-            <ExternalLink className="ml-2 h-3 w-3" />
-          </Button>
-        )}
+            return (
+              <div key={entry.dataKey} className="flex items-center gap-2 text-xs">
+                {/* Rank */}
+                <span className="w-4 text-muted-foreground font-mono">#{index + 1}</span>
+                
+                {/* Color dot */}
+                <div
+                  className="h-2 w-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: entry.color || agent.color }}
+                />
+                
+                {/* Name */}
+                <span className="flex-1 truncate font-medium" style={{ color: entry.color || agent.color }}>
+                  {agent.name}
+                </span>
+                
+                {/* Value */}
+                <span className="font-mono font-semibold">
+                  ${entry.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </span>
+                
+                {/* P&L */}
+                <span className={`font-mono text-[10px] w-14 text-right ${pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {pnl >= 0 ? '+' : ''}{pnlPercent.toFixed(1)}%
+                </span>
+              </div>
+            )
+          })}
+        </div>
       </CardContent>
     </Card>
   )
