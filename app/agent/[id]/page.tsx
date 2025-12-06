@@ -50,7 +50,7 @@ import {
   useTransfer,
   useCollateral,
   useAccountInstance,
-  usePositionStream,
+  useSubAccountDataObserver,
 } from '@orderly.network/hooks'
 import { WalletRequired } from '@/components/wallet-required'
 
@@ -102,7 +102,9 @@ export default function AgentDetailPage() {
   })
   const collateral = useCollateral()
   const accountId = accountInstance?.accountId
-  const [positions] = usePositionStream()
+
+  // Use subaccount observer to get positions for agent's subaccount
+  const { positions: subAccountPositions } = useSubAccountDataObserver(agent?.subAccountId)
 
   // SubAccount balance
   const [subAccountBalance, setSubAccountBalance] = useState<{
@@ -596,8 +598,8 @@ export default function AgentDetailPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {positions?.rows && positions.rows.length > 0 ? (
-                        positions.rows.map((position) => {
+                      {subAccountPositions?.rows && subAccountPositions.rows.length > 0 ? (
+                        subAccountPositions.rows.map((position) => {
                           const isLong = position.position_qty > 0
                           const pnl = position.unrealized_pnl || 0
                           const pnlPercent = position.unrealized_pnl_ROI
