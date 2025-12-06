@@ -1,5 +1,5 @@
 import { AgentCardProps } from '@/components/agent-card'
-import { SEED_AGENT } from '@/lib/contracts'
+import { SEED_AGENT, getSupportedMemecoins } from '@/lib/contracts'
 
 // Generate performance data for sparklines
 export const generatePerformanceData = (startValue: number, trend: 'up' | 'down' | 'flat') => {
@@ -582,6 +582,39 @@ export const allAgentsData: Record<string, AgentDetailData> = {
 // Get agent by ID
 export function getAgentById(id: string): AgentDetailData | undefined {
   return allAgentsData[id]
+}
+
+// Fallback: allow lookup by memecoin symbol to support seed agents without mocks
+export function getAgentBySlug(idOrSymbol: string): AgentDetailData | undefined {
+  const direct = getAgentById(idOrSymbol)
+  if (direct) return direct
+
+  const symbol = idOrSymbol.toUpperCase()
+  const supported = getSupportedMemecoins()
+  if (!supported.includes(symbol)) return undefined
+
+  return {
+    id: symbol,
+    address: SEED_AGENT.ADDRESS,
+    name: `${symbol} Agent`,
+    creator: SEED_AGENT.ADDRESS,
+    strategy: 'On-chain oracle agent',
+    funded: 0,
+    pnl: 0,
+    memecoin: symbol,
+    socialScore: 0,
+    mTokensMined: 0,
+    oracleContributions: 0,
+    winRate: 0,
+    sharpeRatio: 0,
+    triggers: [],
+    contexts: [],
+    performanceData: [],
+    positions: [],
+    completedTrades: [],
+    transactions: [],
+    reasoningLog: [],
+  }
 }
 
 // Get all user-owned agents

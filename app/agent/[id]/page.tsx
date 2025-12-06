@@ -19,7 +19,7 @@ import {
 import { ArrowLeft, TrendingUp, TrendingDown, ExternalLink, Play, Pause, Settings, Zap, Activity, Clock, BarChart2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
-import { getAgentById } from '@/lib/agents-data'
+import { getAgentBySlug } from '@/lib/agents-data'
 import { useRouter, useParams } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { DepositModal } from '@/components/modals/deposit-modal'
@@ -54,7 +54,7 @@ export default function AgentDetailPage() {
   const [showTxModal, setShowTxModal] = useState(false)
   const [showDepositModal, setShowDepositModal] = useState(false)
   const [selectedTx, setSelectedTx] = useState<any>(null)
-  const [agent, setAgent] = useState<ReturnType<typeof getAgentById>>(undefined)
+  const [agent, setAgent] = useState<ReturnType<typeof getAgentBySlug>>(undefined)
   const router = useRouter()
   const params = useParams()
   const [showRenewalModal, setShowRenewalModal] = useState(false)
@@ -115,7 +115,7 @@ export default function AgentDetailPage() {
 
   useEffect(() => {
     if (params?.id && typeof params.id === 'string') {
-      const agentData = getAgentById(params.id)
+      const agentData = getAgentBySlug(params.id)
       setAgent(agentData)
     }
   }, [params?.id])

@@ -226,7 +226,7 @@ All contracts deployed on MemeCore Insectarium Testnet (Chain ID: 43522).
 
 | Contract | Purpose |
 |----------|---------|
-| **AgentRegistry** | Manages agent registration per feed, tracks credibility scores with logarithmic growth (ERC-8004 inspired) |
+| **AgentRegistry** | Manages agent registration per feed, tracks credibility scores with logarithmic growth (ERC-8004 inspired). Includes `getAgentsForFeed` for agent enumeration. |
 | **Aggregator** | Receives trade reports, calculates VCWAP, updates price feeds |
 | **PriceFeed** | Chainlink AggregatorV3Interface compatible price storage (one per memecoin) |
 | **MTokenDistributor** | Epoch-based reward distribution, pull model for claims |
@@ -416,9 +416,9 @@ forge test --gas-report
 
 | Contract | Address |
 |----------|---------|
-| AgentRegistry | `0xd49df845D77Dd02DE442197BE0D4ccde0A076738` |
-| Aggregator | `0xFeAB9a221f6bcDb4c160cD81954eE4405EdF0e35` |
-| MTokenDistributor | `0xaa6b8aD37f435Dc7e095ba6a20b6b2e7E0e285a1` |
+| AgentRegistry | `0x695ec0e49E2e69dF5Ea1Ce6C061A6DcC55978641` |
+| Aggregator | `0xc055B2220675d7B0cCcf0919bFd8753A26A0843F` |
+| MTokenDistributor | `0x8a8d38a9322d8d836415d8e8C8fc8fE8358D8a85` |
 | ProtocolConfig | `0xC81536da58b4b2e4ff433FE511bF0e035576eC15` |
 | WrappedM (wM) | `0x07Aa8b1f50176A6783f5C710c0802f8871000920` |
 
@@ -451,7 +451,7 @@ PriceFeed dogeFeed = PriceFeed(0x30490c9239FDc6ff8FEEF84FF6f7B657Ec6882F8);
 
 ```solidity
 // Agent must be registered and call from its own address
-Aggregator aggregator = Aggregator(0xFeAB9a221f6bcDb4c160cD81954eE4405EdF0e35);
+Aggregator aggregator = Aggregator(0xc055B2220675d7B0cCcf0919bFd8753A26A0843F);
 
 Aggregator.AgentUpdateReport memory report = Aggregator.AgentUpdateReport({
     price: 8500000,           // $0.085 with 8 decimals

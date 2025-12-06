@@ -15,10 +15,10 @@ import {
 import { AgentComparisonChart } from '@/components/agent-comparison-chart'
 import { AgentRankingTable } from '@/components/agent-ranking-table'
 import { MarketplaceCard } from '@/components/marketplace-card'
-import { getPublicAgents } from '@/lib/agents-data'
-import { Search, TrendingUp, Activity } from 'lucide-react'
-import { useState } from 'react'
-import { Label } from '@/components/ui/label'
+import { getSupportedMemecoins, getMemecoinEmoji, getMemecoinName } from '@/lib/contracts'
+import { useAgentsForFeed } from '@/hooks/use-contracts'
+import { Search, TrendingUp, Activity, Loader2 } from 'lucide-react'
+import { useState, useMemo } from 'react'
 
 // Memecoin categories with emoji
 const MEMECOIN_CATEGORIES = [
@@ -32,56 +32,152 @@ const MEMECOIN_CATEGORIES = [
   { symbol: 'BTC', name: 'Bitcoin', emoji: '₿' },
 ]
 
+// Component to fetch and display agents for a single feed
+function FeedAgentsSection({ 
+  feedSymbol, 
+  searchQuery 
+}: { 
+  feedSymbol: string
+  searchQuery: string 
+}) {
+  const { agents, isLoading } = useAgentsForFeed(feedSymbol)
+  const category = MEMECOIN_CATEGORIES.find(c => c.symbol === feedSymbol)
+
+  // Build agent data from on-chain addresses
+  const agentCards = useMemo(() => {
+    return agents.map((address, index) => ({
+      id: `${feedSymbol}-${address}-${index}`,
+      name: `${feedSymbol} Agent #${index + 1}`,
+      strategy: 'On-chain oracle agent',
+      funded: 0,
+      pnl: 0,
+      winRate: 0,
+      sharpeRatio: 0,
+      memecoin: feedSymbol,
+      address,
+      performanceData: [],
+      triggers: [],
+      contexts: [],
+      symbol: feedSymbol,
+    }))
+  }, [agents, feedSymbol])
+
+  // Filter by search
+  const filteredAgents = agentCards.filter(agent => 
+    agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    agent.address.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (filteredAgents.length === 0) {
+    return null
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">{category?.emoji || getMemecoinEmoji(feedSymbol)}</span>
+          <div>
+            <h2 className="text-xl font-bold">{category?.name || getMemecoinName(feedSymbol)} Agents</h2>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Activity className="h-3 w-3" />
+              <Badge variant="outline" className="text-[10px]">
+                {filteredAgents.length} agent{filteredAgents.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-2">
+        {filteredAgents.map((agent) => (
+          <MarketplaceCard
+            key={agent.id}
+            {...agent}
+            address={agent.address}
+            winRate={agent.winRate || 0}
+            sharpeRatio={agent.sharpeRatio || 0}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function MarketplacePage() {
   const [sortBy, setSortBy] = useState('social')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedMemecoin, setSelectedMemecoin] = useState('ALL')
 
-  const publicAgents = getPublicAgents()
+  // Get supported memecoins from contracts
+  const supportedMemecoins = getSupportedMemecoins()
 
-  // Filter by memecoin
-  const filteredByMemecoin = selectedMemecoin === 'ALL'
-    ? publicAgents
-    : publicAgents.filter(agent => agent.memecoin === selectedMemecoin)
+  // Fetch agent counts for all feeds (for category badges)
+  const dogeAgents = useAgentsForFeed('DOGE')
+  const pepeAgents = useAgentsForFeed('PEPE')
+  const shibAgents = useAgentsForFeed('SHIB')
+  const flokiAgents = useAgentsForFeed('FLOKI')
+  const wifAgents = useAgentsForFeed('WIF')
+  const bonkAgents = useAgentsForFeed('BONK')
+  const btcAgents = useAgentsForFeed('BTC')
 
-  // Sort agents
-  const sortedAgents = [...filteredByMemecoin].sort((a, b) => {
-    switch (sortBy) {
-      case 'social':
-        return (b.socialScore || 0) - (a.socialScore || 0)
-      case 'hottest':
-        // Hottest = combination of Social Pulse + mTokensMined
-        const scoreA = (a.socialScore || 0) + ((a.mTokensMined || 0) / 100)
-        const scoreB = (b.socialScore || 0) + ((b.mTokensMined || 0) / 100)
-        return scoreB - scoreA
-      case 'sharpe':
-        return (b.sharpeRatio || 0) - (a.sharpeRatio || 0)
-      case 'deposits':
-        return (b.totalDeposits || 0) - (a.totalDeposits || 0)
-      case 'winrate':
-        return (b.winRate || 0) - (a.winRate || 0)
-      case 'pnl':
-        return b.pnl - a.pnl
-      default:
-        return 0
-    }
-  })
+  const agentCounts: Record<string, number> = {
+    DOGE: dogeAgents.agentCount,
+    PEPE: pepeAgents.agentCount,
+    SHIB: shibAgents.agentCount,
+    FLOKI: flokiAgents.agentCount,
+    WIF: wifAgents.agentCount,
+    BONK: bonkAgents.agentCount,
+    BTC: btcAgents.agentCount,
+  }
 
-  // Apply search filters
-  const filteredAgents = sortedAgents.filter(agent => {
-    return agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      agent.strategy.toLowerCase().includes(searchQuery.toLowerCase())
-  })
+  const totalAgentCount = Object.values(agentCounts).reduce((sum, count) => sum + count, 0)
 
-  // Group by memecoin for display
-  const groupedAgents: Record<string, typeof filteredAgents> = {}
-  filteredAgents.forEach(agent => {
-    const memecoin = agent.memecoin || 'OTHER'
-    if (!groupedAgents[memecoin]) {
-      groupedAgents[memecoin] = []
-    }
-    groupedAgents[memecoin].push(agent)
-  })
+  // For ranking table, build a flat list of all agents
+  const allAgents = useMemo(() => {
+    const all: any[] = []
+    const feedsData = [
+      { symbol: 'DOGE', agents: dogeAgents.agents },
+      { symbol: 'PEPE', agents: pepeAgents.agents },
+      { symbol: 'SHIB', agents: shibAgents.agents },
+      { symbol: 'FLOKI', agents: flokiAgents.agents },
+      { symbol: 'WIF', agents: wifAgents.agents },
+      { symbol: 'BONK', agents: bonkAgents.agents },
+      { symbol: 'BTC', agents: btcAgents.agents },
+    ]
+    
+    feedsData.forEach(({ symbol, agents }) => {
+      agents.forEach((address, index) => {
+        all.push({
+          id: `${symbol}-${address}-${index}`,
+          name: `${symbol} Agent #${index + 1}`,
+          strategy: 'On-chain oracle agent',
+          funded: 0,
+          pnl: 0,
+          winRate: 0,
+          sharpeRatio: 0,
+          memecoin: symbol,
+          address,
+          performanceData: [],
+          triggers: [],
+          contexts: [],
+        })
+      })
+    })
+    return all
+  }, [dogeAgents.agents, pepeAgents.agents, shibAgents.agents, flokiAgents.agents, wifAgents.agents, bonkAgents.agents, btcAgents.agents])
+
+  // Determine which feeds to show
+  const feedsToShow = selectedMemecoin === 'ALL' 
+    ? supportedMemecoins 
+    : [selectedMemecoin]
 
   return (
     <div className="min-h-screen bg-background/80 backdrop-blur-sm">
@@ -103,7 +199,7 @@ export default function MarketplacePage() {
               <AgentComparisonChart />
             </div>
             <div className="md:col-span-1">
-              <AgentRankingTable agents={publicAgents} />
+              <AgentRankingTable agents={allAgents} />
             </div>
           </div>
 
@@ -112,8 +208,8 @@ export default function MarketplacePage() {
             <div className="flex items-center gap-2 overflow-x-auto pb-2">
               {MEMECOIN_CATEGORIES.map((category) => {
                 const count = category.symbol === 'ALL'
-                  ? publicAgents.length
-                  : publicAgents.filter(a => a.memecoin === category.symbol).length
+                  ? totalAgentCount
+                  : agentCounts[category.symbol] || 0
 
                 return (
                   <Button
@@ -138,7 +234,7 @@ export default function MarketplacePage() {
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search agents..."
+                placeholder="Search agents by name or address..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -174,70 +270,24 @@ export default function MarketplacePage() {
             </div>
           </div>
 
-          {/* Grouped Agent Display */}
-          {selectedMemecoin === 'ALL' ? (
-            // Show grouped by memecoin
-            <div className="space-y-8">
-              {Object.entries(groupedAgents).map(([memecoin, agents]) => {
-                const category = MEMECOIN_CATEGORIES.find(c => c.symbol === memecoin)
-                const avgSocialScore = Math.round(
-                  agents.reduce((sum, a) => sum + (a.socialScore || 0), 0) / agents.length
-                )
+          {/* Agent Display - Grouped by Feed */}
+          <div className="space-y-8">
+            {feedsToShow.map((feed) => (
+              <FeedAgentsSection 
+                key={feed} 
+                feedSymbol={feed} 
+                searchQuery={searchQuery}
+              />
+            ))}
+          </div>
 
-                return (
-                  <div key={memecoin}>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-3xl">{category?.emoji || '🪙'}</span>
-                        <div>
-                          <h2 className="text-xl font-bold">{category?.name || memecoin} Agents</h2>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Activity className="h-3 w-3" />
-                            <span>Avg Social Pulse: {avgSocialScore}/100</span>
-                            <Badge variant="outline" className="text-[10px]">
-                              {agents.length} agents
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-2">
-                      {agents.map((agent) => (
-                        <MarketplaceCard
-                          key={agent.id}
-                          {...agent}
-                          address={agent.address}
-                          winRate={agent.winRate || 0}
-                          sharpeRatio={agent.sharpeRatio || 0}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            // Show flat list for selected memecoin
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-2">
-              {filteredAgents.map((agent) => (
-                <MarketplaceCard
-                  key={agent.id}
-                  {...agent}
-                  address={agent.address}
-                  winRate={agent.winRate || 0}
-                  sharpeRatio={agent.sharpeRatio || 0}
-                />
-              ))}
-            </div>
-          )}
-
-          {filteredAgents.length === 0 && (
+          {totalAgentCount === 0 && (
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center justify-center py-16">
                 <Search className="mb-4 h-12 w-12 text-muted-foreground" />
-                <h3 className="mb-2 text-xl font-semibold">No agents found</h3>
+                <h3 className="mb-2 text-xl font-semibold">No agents registered</h3>
                 <p className="text-center text-muted-foreground">
-                  Try adjusting your search or filters
+                  No agents have been registered for any feed yet.
                 </p>
               </CardContent>
             </Card>

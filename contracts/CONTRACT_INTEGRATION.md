@@ -94,15 +94,15 @@ sequenceDiagram
 ## 2. Contract Addresses (Testnet)
 
 > [!CAUTION]
-> **Addresses updated December 2024 (Auth Fix).** The Aggregator was redeployed with proper authentication.
+> **Addresses updated December 2024 (Agent List Getter).** AgentRegistry, Aggregator, and MTokenDistributor redeployed with `getAgentsForFeed` support.
 
 ### Core Contracts
 
 | Contract | Address | Purpose |
 |----------|---------|---------|
-| **AgentRegistry** | `0xd49df845D77Dd02DE442197BE0D4ccde0A076738` | Agent identity, permissions, and credibility. |
-| **Aggregator** | `0xFeAB9a221f6bcDb4c160cD81954eE4405EdF0e35` | Receives updates, validates auth, calculates VCWAP. |
-| **MTokenDistributor** | `0xaa6b8aD37f435Dc7e095ba6a20b6b2e7E0e285a1` | Epoch-based $M reward distribution. |
+| **AgentRegistry** | `0x695ec0e49E2e69dF5Ea1Ce6C061A6DcC55978641` | Agent identity, permissions, credibility, and agent enumeration. |
+| **Aggregator** | `0xc055B2220675d7B0cCcf0919bFd8753A26A0843F` | Receives updates, validates auth, calculates VCWAP. |
+| **MTokenDistributor** | `0x8a8d38a9322d8d836415d8e8C8fc8fE8358D8a85` | Epoch-based $M reward distribution. |
 | **ProtocolConfig** | `0xC81536da58b4b2e4ff433FE511bF0e035576eC15` | Global settings (epoch duration, reward rates). |
 | **WrappedM (wM)** | `0x07Aa8b1f50176A6783f5C710c0802f8871000920` | ERC20 wrapped M token for rewards. |
 
@@ -271,6 +271,8 @@ await agentClient.writeContract(request);
   "function getAgentStats(address agent) external view returns (uint256 updates, uint256 credibility, uint256 avgAccuracy)",
   "function isRegistrar(address account) external view returns (bool)",
   "function setRegistrar(address registrar, bool authorized) external",
+  "function getAgentsForFeed(string feedSymbol) external view returns (address[])",
+  "function getAgentCountForFeed(string feedSymbol) external view returns (uint256)",
   "event AgentRegistered(address indexed agent, string indexed feedSymbol, uint256 timestamp)"
 ]
 ```
@@ -332,8 +334,8 @@ const memecoreTestnet = defineChain({
 
 // Contract addresses
 const CONTRACTS = {
-  AGENT_REGISTRY: '0xd49df845D77Dd02DE442197BE0D4ccde0A076738',
-  AGGREGATOR: '0xFeAB9a221f6bcDb4c160cD81954eE4405EdF0e35',
+  AGENT_REGISTRY: '0x695ec0e49E2e69dF5Ea1Ce6C061A6DcC55978641',
+  AGGREGATOR: '0xc055B2220675d7B0cCcf0919bFd8753A26A0843F',
 };
 
 // ABIs
@@ -411,7 +413,33 @@ runAgent();
 
 ---
 
-## 8. Testing Checklist
+## 8. Querying Registered Agents
+
+You can enumerate all registered agents for a specific feed using the new getter functions:
+
+```typescript
+// Get all agents for a feed
+const agents = await publicClient.readContract({
+  address: CONTRACTS.AGENT_REGISTRY,
+  abi: REGISTRY_ABI,
+  functionName: 'getAgentsForFeed',
+  args: ['DOGE']
+});
+console.log('DOGE agents:', agents); // Array of addresses
+
+// Get agent count for a feed
+const count = await publicClient.readContract({
+  address: CONTRACTS.AGENT_REGISTRY,
+  abi: REGISTRY_ABI,
+  functionName: 'getAgentCountForFeed',
+  args: ['PEPE']
+});
+console.log('PEPE agent count:', count);
+```
+
+---
+
+## 9. Testing Checklist
 
 - [ ] Agent wallet generated and private key secured
 - [ ] Agent wallet funded with testnet M for gas

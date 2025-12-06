@@ -22,6 +22,9 @@ contract AgentRegistry is Ownable {
     // agent => feed symbol => registered
     mapping(address => mapping(string => bool)) public registrations;
     
+    // feed symbol => list of registered agents
+    mapping(string => address[]) public feedAgents;
+    
     // agent => credibility score (basis points, 10000 = 100%)
     mapping(address => uint256) public credibilityScores;
     
@@ -133,6 +136,7 @@ contract AgentRegistry is Ownable {
         require(!registrations[agent][feedSymbol], "Already registered");
         
         registrations[agent][feedSymbol] = true;
+        feedAgents[feedSymbol].push(agent);
         
         // Initialize credibility and epoch tracking if first registration
         if (credibilityScores[agent] == 0) {
@@ -154,6 +158,32 @@ contract AgentRegistry is Ownable {
         returns (bool) 
     {
         return registrations[agent][feedSymbol];
+    }
+    
+    /**
+     * @notice Get all registered agents for a feed
+     * @param feedSymbol Symbol of the feed (e.g., "DOGE")
+     * @return Array of agent addresses registered for this feed
+     */
+    function getAgentsForFeed(string calldata feedSymbol) 
+        external 
+        view 
+        returns (address[] memory) 
+    {
+        return feedAgents[feedSymbol];
+    }
+    
+    /**
+     * @notice Get the number of agents registered for a feed
+     * @param feedSymbol Symbol of the feed
+     * @return Number of registered agents
+     */
+    function getAgentCountForFeed(string calldata feedSymbol) 
+        external 
+        view 
+        returns (uint256) 
+    {
+        return feedAgents[feedSymbol].length;
     }
 
     /**

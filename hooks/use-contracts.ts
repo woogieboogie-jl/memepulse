@@ -503,3 +503,58 @@ export function useEpochDuration() {
         isLoading
     }
 }
+
+/**
+ * Fetches all registered agents for a specific feed symbol.
+ * Returns an array of agent addresses.
+ */
+export function useAgentsForFeed(feedSymbol: string) {
+    const { data, isError, isLoading, refetch } = useQuery({
+        queryKey: ['agentsForFeed', feedSymbol],
+        queryFn: async () => {
+            if (!feedSymbol) return []
+            return await publicClient.readContract({
+                address: CONTRACTS.AGENT_REGISTRY as Address,
+                abi: ABIS.AGENT_REGISTRY,
+                functionName: 'getAgentsForFeed',
+                args: [feedSymbol]
+            }) as Address[]
+        },
+        enabled: !!feedSymbol,
+        refetchInterval: 30000, // Refresh every 30s
+    })
+
+    return {
+        agents: data || [],
+        agentCount: data?.length || 0,
+        isError,
+        isLoading,
+        refetch
+    }
+}
+
+/**
+ * Fetches agent count for a specific feed symbol.
+ */
+export function useAgentCountForFeed(feedSymbol: string) {
+    const { data, isError, isLoading } = useQuery({
+        queryKey: ['agentCountForFeed', feedSymbol],
+        queryFn: async () => {
+            if (!feedSymbol) return 0n
+            return await publicClient.readContract({
+                address: CONTRACTS.AGENT_REGISTRY as Address,
+                abi: ABIS.AGENT_REGISTRY,
+                functionName: 'getAgentCountForFeed',
+                args: [feedSymbol]
+            }) as bigint
+        },
+        enabled: !!feedSymbol,
+        refetchInterval: 30000,
+    })
+
+    return {
+        count: data ? Number(data) : 0,
+        isError,
+        isLoading
+    }
+}

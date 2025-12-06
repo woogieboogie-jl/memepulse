@@ -4,14 +4,21 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { TrendingUp, TrendingDown, Users, Activity } from 'lucide-react'
+import { TrendingUp, TrendingDown, Users, Activity, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { LineChart, Line, Area, ResponsiveContainer } from 'recharts'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { DelegationModal } from '@/components/modals/delegation-modal'
 
-import { useCredibility } from '@/hooks/use-contracts'
+import {
+    useCredibility,
+    useIsAgentRegistered,
+    useAgentUpdateCount,
+    useMiningStats,
+    useOraclePrice,
+} from '@/hooks/use-contracts'
+import { isMemecoinSupported } from '@/lib/contracts'
 
 export interface MarketplaceCardProps {
     id: string
@@ -28,6 +35,7 @@ export interface MarketplaceCardProps {
     mTokensMined?: number
 
     address?: string // Wallet address for on-chain interactions
+    symbol?: string // Optional memecoin symbol for price/registry checks
 
     // Marketplace specific
     creator?: string
@@ -58,6 +66,7 @@ export function MarketplaceCard({
     socialScore = 0,
     mTokensMined = 0,
     address,
+    symbol,
     creator,
     totalDeposits = 0,
     minDeposit = 100,
@@ -73,8 +82,18 @@ export function MarketplaceCard({
     const { theme } = useTheme()
     const router = useRouter()
 
+    // Normalize symbol for on-chain lookups
+    const symbolKey = (() => {
+        const candidate = (symbol || memecoin || '').toUpperCase()
+        return isMemecoinSupported(candidate) ? (candidate as keyof typeof CONTRACTS.PRICE_FEEDS) : undefined
+    })()
+
     // Live Credibility Score
     const { credibility, isLoading: isCredibilityLoading } = useCredibility(address)
+    const { isRegistered } = useIsAgentRegistered(address, symbolKey)
+    const { updateCount } = useAgentUpdateCount(address)
+    const { volume } = useMiningStats(address)
+    const { price, isLoading: isPriceLoading, hasData: hasPrice } = useOraclePrice(symbolKey as any)
 
     // Use live score if available, otherwise fallback to static prop
     const displayScore = address ? credibility : socialScore
@@ -124,6 +143,12 @@ export function MarketplaceCard({
 
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                     {creator && <span className="text-xs text-muted-foreground">by {creator}</span>}
+
+                                    {symbolKey && (
+                                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-5">
+                                            {symbolKey}
+                                        </Badge>
+                                    )}
 
                                     <TooltipProvider>
                                         <Tooltip>
@@ -191,6 +216,39 @@ export function MarketplaceCard({
                 </CardHeader>
 
                 <CardContent className="space-y-2.5">
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div className="flex items-center gap-1">
+                            {isRegistered ? (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                            ) : (
+                                <XCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                            )}
+                            <span className="text-muted-foreground">Registered</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <Activity className="h-3.5 w-3.5 text-primary" />
+                            <span className="text-muted-foreground">Updates:</span>
+                            <span className="font-semibold text-foreground">{updateCount ?? 0}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            {isPriceLoading ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                            ) : (
+                                <span className="text-muted-foreground">$</span>
+                            )}
+                            <span className="font-semibold text-foreground">
+                                {hasPrice && price !== null ? `$${price > 1 ? price.toFixed(2) : price.toFixed(6)}` : '-'}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-1 col-span-3">
+                            <TrendingUp className="h-3.5 w-3.5 text-accent" />
+                            <span className="text-muted-foreground">Volume:</span>
+                            <span className="font-semibold text-foreground">
+                                {volume > 0 ? volume.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '-'}
+                            </span>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <p className="text-[10px] text-muted-foreground mb-0.5 leading-tight">30d Return</p>

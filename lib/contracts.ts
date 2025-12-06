@@ -7,20 +7,23 @@
  * Last updated: After RedeployAll.s.sol execution
  */
 
+import { parseAbi } from 'viem'
+
 // ============================================
 // CORE CONTRACTS
 // ============================================
 
 export const CONTRACTS = {
   // Agent management with registrar-based access control
-  AGENT_REGISTRY: '0xd49df845D77Dd02DE442197BE0D4ccde0A076738',
+  // Updated: Now includes getAgentsForFeed getter (Dec 2024)
+  AGENT_REGISTRY: '0x695ec0e49E2e69dF5Ea1Ce6C061A6DcC55978641',
   
   // Oracle aggregation - receives updates, calculates VCWAP
   // Fixed: Now requires msg.sender == agent (auth fix Dec 2024)
-  AGGREGATOR: '0xFeAB9a221f6bcDb4c160cD81954eE4405EdF0e35',
+  AGGREGATOR: '0xc055B2220675d7B0cCcf0919bFd8753A26A0843F',
   
   // Epoch-based reward distribution
-  M_TOKEN_DISTRIBUTOR: '0xaa6b8aD37f435Dc7e095ba6a20b6b2e7E0e285a1',
+  M_TOKEN_DISTRIBUTOR: '0x8a8d38a9322d8d836415d8e8C8fc8fE8358D8a85',
   
   // Protocol parameters (epoch duration, reward rates, etc.)
   PROTOCOL_CONFIG: '0xC81536da58b4b2e4ff433FE511bF0e035576eC15',
@@ -92,7 +95,7 @@ export const MEMECOIN_INFO: Record<string, {
 // ============================================
 
 export const ABIS = {
-  AGENT_REGISTRY: [
+  AGENT_REGISTRY: parseAbi([
     "function getCredibility(address agent) external view returns (uint256)",
     "function isRegistered(address agent, string feedSymbol) external view returns (bool)",
     "function getAgentStats(address agent) external view returns (uint256 updates, uint256 credibility, uint256 avgAccuracy)",
@@ -100,19 +103,17 @@ export const ABIS = {
     "function credibilityScores(address agent) external view returns (uint256)",
     "function registrars(address) external view returns (bool)",
     "function isRegistrar(address account) external view returns (bool)",
-    // Write functions (for registrars)
+    "function getAgentsForFeed(string feedSymbol) external view returns (address[])",
+    "function getAgentCountForFeed(string feedSymbol) external view returns (uint256)",
     "function registerAgent(address agent, string feedSymbol) external",
     "function setRegistrar(address registrar, bool authorized) external"
-  ],
-  AGGREGATOR: [
+  ]),
+  AGGREGATOR: parseAbi([
     "function calculateVWAP(string feedSymbol) external view returns (uint256)",
     "function getUpdateCount(string feedSymbol) external view returns (uint256)",
-    "function getLastNUpdates(string feedSymbol, uint256 n) external view returns (tuple(uint256 price, uint256 volume, bool isLong, uint8 leverage, uint256 timestamp, bytes32 orderlyTxHash, address agent)[])",
-    "event UpdateSubmitted(address indexed agent, string indexed feedSymbol, uint256 price, uint256 volume, uint256 timestamp, bytes32 orderlyTxHash)",
-    // Write function
-    "function submitUpdate(address agent, string feedSymbol, tuple(uint256 price, uint256 volume, bool isLong, uint8 leverage, uint256 timestamp, bytes32 orderlyTxHash, address agent) report) external"
-  ],
-  M_TOKEN_DISTRIBUTOR: [
+    "event UpdateSubmitted(address indexed agent, string indexed feedSymbol, uint256 price, uint256 volume, uint256 timestamp, bytes32 orderlyTxHash)"
+  ]),
+  M_TOKEN_DISTRIBUTOR: parseAbi([
     "function currentEpoch() external view returns (uint256)",
     "function epochStartTime() external view returns (uint256)",
     "function getTimeUntilNextEpoch() external view returns (uint256)",
@@ -124,25 +125,24 @@ export const ABIS = {
     "function agentVolume(uint256 epoch, address agent) external view returns (uint256)",
     "function epochTotalVolume(uint256 epoch) external view returns (uint256)",
     "function epochTotalReward(uint256 epoch) external view returns (uint256)"
-  ],
-  PROTOCOL_CONFIG: [
+  ]),
+  PROTOCOL_CONFIG: parseAbi([
     "function epochDuration() external view returns (uint256)",
     "function baseRewardPerUpdate() external view returns (uint256)",
     "function maxUpdatesForVCWAP() external view returns (uint256)",
     "function minCredibility() external view returns (uint256)",
     "function getFeedReward(string feedSymbol) external view returns (uint256)",
     "function feedRewardMultipliers(string) external view returns (uint256)",
-    // Write function
     "function setFeedMultiplier(string feedSymbol, uint256 multiplier) external"
-  ],
-  PRICE_FEED: [
+  ]),
+  PRICE_FEED: parseAbi([
     "function latestRoundData() external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)",
     "function decimals() external view returns (uint8)",
     "function currentRoundId() external view returns (uint80)",
     "function symbol() external view returns (string)",
     "function description() external view returns (string)"
-  ],
-  WM_TOKEN: [
+  ]),
+  WM_TOKEN: parseAbi([
     "function balanceOf(address account) external view returns (uint256)",
     "function totalSupply() external view returns (uint256)",
     "function decimals() external view returns (uint8)",
@@ -151,8 +151,8 @@ export const ABIS = {
     "function transfer(address to, uint256 amount) external returns (bool)",
     "function allowance(address owner, address spender) external view returns (uint256)",
     "function approve(address spender, uint256 amount) external returns (bool)"
-  ]
-} as const;
+  ])
+};
 
 // ============================================
 // HELPER FUNCTIONS
