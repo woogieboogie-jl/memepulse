@@ -3,7 +3,7 @@
 import { NavHeader } from '@/components/nav-header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { FileCode, Zap, Database, Globe, Code2, Lock } from 'lucide-react'
+import { FileCode, Database, Globe, Lock, Zap } from 'lucide-react'
 import { getAllFeedContracts } from '@/lib/memecoin-contracts'
 import { CONTRACTS, MEMECORE_NETWORK } from '@/lib/contracts'
 
@@ -33,9 +33,9 @@ export default function DocsPage() {
                         </Card>
                         <Card className="hover:border-primary/50 transition-colors cursor-pointer">
                             <CardContent className="pt-6">
-                                <Zap className="h-8 w-8 text-accent mb-2" />
-                                <h3 className="font-semibold mb-1">Oracle API</h3>
-                                <p className="text-xs text-muted-foreground">Real-time pulse data feeds</p>
+                                <Database className="h-8 w-8 text-accent mb-2" />
+                                <h3 className="font-semibold mb-1">Architecture</h3>
+                                <p className="text-xs text-muted-foreground">Dual-chain system design</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -302,45 +302,6 @@ export default function DocsPage() {
                                             <span className="text-muted-foreground min-w-[100px]">Decimals:</span>
                                             <span>18</span>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Oracle API Section */}
-                    <Card className="mb-6" id="oracle-api">
-                        <CardHeader>
-                            <div className="flex items-center gap-2">
-                                <Zap className="h-5 w-5" />
-                                <CardTitle>Oracle API</CardTitle>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground mb-4">
-                                Access real-time oracle price data for all supported memecoins
-                            </p>
-                            <div className="bg-muted/30 rounded-lg p-4">
-                                <div className="space-y-3">
-                                    <div>
-                                        <h4 className="font-semibold text-sm mb-2">GET /api/oracle/pulse/:symbol</h4>
-                                        <p className="text-xs text-muted-foreground mb-2">Fetch latest pulse data for a memecoin</p>
-                                        <code className="block bg-muted px-3 py-2 rounded text-xs font-mono">
-                                            curl https://api.memepulse.xyz/oracle/pulse/DOGE
-                                        </code>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold text-sm mb-2">Response</h4>
-                                        <pre className="bg-muted px-3 py-2 rounded text-xs font-mono overflow-x-auto">
-                                            {`{
-  "symbol": "DOGE",
-  "credibility": 85,
-  "volume24h": 1250000,
-  "price": 0.084,
-  "priceChange24h": 2.3,
-  "lastUpdate": "2025-12-04T17:22:00Z"
-}`}
-                                        </pre>
                                     </div>
                                 </div>
                             </div>

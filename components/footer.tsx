@@ -71,11 +71,6 @@ export function Footer() {
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/docs#oracle-api" className="text-muted-foreground hover:text-primary transition-colors">
-                                    Oracle API
-                                </Link>
-                            </li>
-                            <li>
                                 <a
                                     href="https://github.com"
                                     target="_blank"
@@ -114,19 +109,6 @@ export function Footer() {
                                     <MessageCircle className="h-3 w-3" />
                                     Discord
                                 </a>
-                            </li>
-                        </ul>
-                        <h3 className="font-semibold mb-3 text-sm">Legal</h3>
-                        <ul className="space-y-2 text-sm">
-                            <li>
-                                <Link href="/terms" className="text-muted-foreground hover:text-primary transition-colors">
-                                    Terms of Service
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/privacy" className="text-muted-foreground hover:text-primary transition-colors">
-                                    Privacy Policy
-                                </Link>
                             </li>
                         </ul>
                     </div>
