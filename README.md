@@ -1,12 +1,38 @@
+<div align="center">
+
+<!-- Banner Image -->
+<img src="public/banner.png" alt="MemePulse.ai Banner" width="100%" />
+
+<br />
+<br />
+
 # MemePulse.ai
 
 **Real-time Social Oracle and PoM Mining Engine for MemeCore L1**
 
-MemePulse enables users to deploy AI trading agents that execute memecoin perpetual trades on Orderly Network while simultaneously feeding verified price data to MemeCore's on-chain oracle - earning both trading P&L and M token mining rewards.
+[![MemeCore Testnet](https://img.shields.io/badge/Network-MemeCore%20Insectarium-00FF41?style=for-the-badge)](https://insectarium.blockscout.memecore.com)
+[![Solidity](https://img.shields.io/badge/Solidity-0.8.20-363636?style=for-the-badge&logo=solidity)](https://soliditylang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=nextdotjs)](https://nextjs.org/)
+[![License](https://img.shields.io/badge/License-MIT-F7D51D?style=for-the-badge)](LICENSE)
+
+<br />
+
+[Live Demo](https://memepulse.vercel.app) | [Documentation](contracts/CONTRACT_INTEGRATION.md) | [Block Explorer](https://insectarium.blockscout.memecore.com)
+
+<br />
+
+</div>
 
 ---
 
-## Table of Contents
+### What is MemePulse?
+
+MemePulse enables users to deploy AI trading agents that execute memecoin perpetual trades on Orderly Network while simultaneously feeding verified price data to MemeCore's on-chain oracle - earning both trading P&L and M token mining rewards.
+
+<br />
+
+<details>
+<summary><strong>Table of Contents</strong></summary>
 
 - [Overview](#overview)
 - [Problem Statement](#problem-statement)
@@ -22,6 +48,8 @@ MemePulse enables users to deploy AI trading agents that execute memecoin perpet
 - [Contract Addresses](#contract-addresses)
 - [API Reference](#api-reference)
 - [Roadmap](#roadmap)
+
+</details>
 
 ---
 
@@ -521,14 +549,42 @@ memepulse/
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## Acknowledgments
+## Built With
 
-Built for the MemeCore Hackathon 2024.
+<div align="center">
 
-- MemeCore L1 - Target blockchain
-- Orderly Network - Perpetual DEX integration
-- Chainlink - AggregatorV3Interface standard
+| | Technology | Purpose |
+|:---:|:---|:---|
+| <img src="https://img.shields.io/badge/-363636?style=flat-square&logo=ethereum" height="20"/> | **MemeCore L1** | Target blockchain for oracle deployment |
+| <img src="https://img.shields.io/badge/-000000?style=flat-square&logo=nextdotjs" height="20"/> | **Next.js 16** | Frontend framework with App Router |
+| <img src="https://img.shields.io/badge/-363636?style=flat-square&logo=solidity" height="20"/> | **Solidity** | Smart contract development |
+| <img src="https://img.shields.io/badge/-FFFFFF?style=flat-square&logo=foundry" height="20"/> | **Foundry** | Contract testing and deployment |
+| <img src="https://img.shields.io/badge/-2684FF?style=flat-square&logo=chainlink" height="20"/> | **Chainlink** | AggregatorV3Interface standard |
+
+</div>
+
+---
+
+<div align="center">
+
+### Built for MemeCore Hackathon 2024
+
+<br />
+
+**MemePulse.ai** - Transforming speculative trading into blockchain infrastructure
+
+<br />
+
+[Report Bug](https://github.com/woogieboogie-jl/memepulse/issues) | [Request Feature](https://github.com/woogieboogie-jl/memepulse/issues)
+
+<br />
+
+---
+
+<sub>Made with determination and mass volumes of caffeine</sub>
+
+</div>
