@@ -3,46 +3,88 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { TrendingUp, Activity, ExternalLink } from 'lucide-react'
+import { Activity } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
+
+import { useAggregatorStats } from '@/hooks/use-contracts'
+import { usePriceWithChange } from '@/hooks/use-price-with-change'
+import { CONTRACTS } from '@/lib/contracts'
 
 export interface PulseCardProps {
     memecoin: string
-    symbol: string // e.g., "DOGE", "PEPE"
-    currentPrice: number
-    priceChange24h: number
-    socialScore: number // 0-100
-    miningAPY: number // percentage
-    volume24h: number
+    symbol: string
+    currentPrice?: number
+    priceChange24h?: number
+    socialScore?: number
+    miningAPY?: number
+    volume24h?: number
     lastProofTxHash?: string
+}
+
+// Helper component for empty state display
+function EmptyValue({ tooltip }: { tooltip: string }) {
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <span className="text-muted-foreground cursor-help">-</span>
+                </TooltipTrigger>
+                <TooltipContent className="z-[9999]" side="top" sideOffset={5}>
+                    <p className="font-body text-xs">{tooltip}</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    )
 }
 
 export function PulseCard({
     memecoin,
     symbol,
-    currentPrice,
-    priceChange24h,
-    socialScore,
-    miningAPY,
-    volume24h,
-    lastProofTxHash,
+    currentPrice: initialPrice,
+    priceChange24h: initialChange,
+    socialScore: initialScore,
+    miningAPY = 0,
+    volume24h: initialVolume,
 }: PulseCardProps) {
     const router = useRouter()
-    const [showProof, setShowProof] = useState(false)
+
+    // Fetch live data with 24h change tracking
+    const { 
+        price: livePrice, 
+        hasData: hasPriceData, 
+        updatedAt, 
+        isLoading: isPriceLoading,
+        changePercent24h,
+        hasChangeData
+    } = usePriceWithChange(symbol as keyof typeof CONTRACTS.PRICE_FEEDS)
+    const { dailyUpdates, hasData: hasStatsData } = useAggregatorStats(symbol)
+
+    // Use live data or fallback to initial props, or show empty state
+    const displayPrice = hasPriceData && livePrice !== null ? livePrice : initialPrice
+    const displayScore = hasStatsData ? Math.min(dailyUpdates * 10, 100) : initialScore || 0 // Map updates to score (mock)
+    const displayVolume = initialVolume || 0
+
+    // 24h change - use localStorage tracking, fall back to initial if available
+    const displayChange = hasChangeData ? changePercent24h : initialChange
 
     // Determine pulse intensity based on Social Pulse
     const getPulseIntensity = () => {
-        if (socialScore >= 80) return 'pulse-strong' // Red flash + intense heartbeat
-        if (socialScore >= 60) return 'pulse-medium' // Orange glow
-        if (socialScore >= 40) return 'pulse-weak' // Yellow subtle
-        return 'pulse-idle' // Gray dormant
+        if (displayScore >= 80) return 'pulse-strong'
+        if (displayScore >= 60) return 'pulse-medium'
+        if (displayScore >= 40) return 'pulse-weak'
+        return 'pulse-idle'
     }
 
     const getSocialScoreColor = () => {
-        if (socialScore >= 80) return 'text-destructive'
-        if (socialScore >= 60) return 'text-accent'
-        if (socialScore >= 40) return 'text-primary'
+        if (displayScore >= 80) return 'text-destructive'
+        if (displayScore >= 60) return 'text-accent'
+        if (displayScore >= 40) return 'text-primary'
         return 'text-muted-foreground'
     }
 
@@ -52,8 +94,17 @@ export function PulseCard({
         return 'bg-secondary text-secondary-foreground'
     }
 
+    const handleCardClick = (e: React.MouseEvent) => {
+        const target = e.target as HTMLElement
+        if (target.closest('button') || target.closest('a')) return
+        router.push(`/feed/${symbol}`)
+    }
+
     return (
-        <Card className={`relative overflow-hidden transition-all hover:border-primary/50 cursor-pointer ${getPulseIntensity()}`}>
+        <Card
+            className={`relative overflow-hidden transition-all hover:border-primary/50 cursor-pointer ${getPulseIntensity()}`}
+            onClick={handleCardClick}
+        >
             <CardContent className="p-4">
                 {/* Header: Symbol + Price */}
                 <div className="flex items-start justify-between mb-3">
@@ -62,10 +113,27 @@ export function PulseCard({
                         <Activity className={`h-5 w-5 ${getSocialScoreColor()}`} />
                     </div>
                     <div className="text-right">
-                        <div className="text-lg font-bold">${currentPrice.toFixed(6)}</div>
-                        <div className={`text-xs ${priceChange24h >= 0 ? 'text-accent' : 'text-destructive'}`}>
-                            {priceChange24h >= 0 ? '+' : ''}{priceChange24h.toFixed(2)}%
+                        <div className="text-lg font-bold">
+                            {isPriceLoading ? (
+                                <span className="animate-pulse">...</span>
+                            ) : displayPrice !== undefined && displayPrice !== null ? (
+                                `$${displayPrice > 1 ? displayPrice.toLocaleString() : displayPrice.toFixed(8)}`
+                            ) : (
+                                <EmptyValue tooltip="Feed not activated yet" />
+                            )}
                         </div>
+                        <div className={`text-xs ${displayChange !== undefined && displayChange >= 0 ? 'text-accent' : 'text-destructive'}`}>
+                            {displayChange !== undefined ? (
+                                `${displayChange >= 0 ? '+' : ''}${displayChange.toFixed(2)}%`
+                            ) : (
+                                <EmptyValue tooltip="Building price history..." />
+                            )}
+                        </div>
+                        {updatedAt && updatedAt > 0 && (
+                            <div className="text-[10px] text-muted-foreground mt-1">
+                                {new Date(updatedAt * 1000).toLocaleTimeString()}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -73,19 +141,23 @@ export function PulseCard({
                 <div className="mb-3">
                     <div className="flex items-center justify-between text-xs mb-1">
                         <span className="text-muted-foreground">Social Pulse</span>
-                        <span className={`font-bold ${getSocialScoreColor()}`}>{socialScore}/100</span>
+                        <span className={`font-bold ${getSocialScoreColor()}`}>
+                            {hasStatsData ? `${displayScore}/100` : (
+                                <EmptyValue tooltip="No oracle updates yet" />
+                            )}
+                        </span>
                     </div>
                     <div className="h-2 bg-secondary rounded-full overflow-hidden">
                         <div
-                            className={`h-full transition-all duration-500 ${socialScore >= 80
+                            className={`h-full transition-all duration-500 ${displayScore >= 80
                                 ? 'bg-destructive animate-pulse'
-                                : socialScore >= 60
+                                : displayScore >= 60
                                     ? 'bg-accent'
-                                    : socialScore >= 40
+                                    : displayScore >= 40
                                         ? 'bg-primary'
                                         : 'bg-muted'
                                 }`}
-                            style={{ width: `${socialScore}%` }}
+                            style={{ width: `${displayScore}%` }}
                         />
                     </div>
                 </div>
@@ -93,7 +165,7 @@ export function PulseCard({
                 {/* Mining APY Badge */}
                 <div className="mb-3">
                     <Badge className={`${getMiningAPYColor()} font-bold text-xs`}>
-                        ⛏️ Mining APY: {miningAPY}%
+                        ⛏️ Mining APY: {miningAPY > 0 ? `${miningAPY}%` : '-'}
                     </Badge>
                 </div>
 
@@ -101,7 +173,11 @@ export function PulseCard({
                 <div className="grid grid-cols-2 gap-2 text-xs mb-3">
                     <div>
                         <div className="text-muted-foreground">24h Volume</div>
-                        <div className="font-bold">${(volume24h / 1000).toFixed(1)}K</div>
+                        <div className="font-bold">
+                            {displayVolume > 0 ? `$${(displayVolume / 1000).toFixed(1)}K` : (
+                                <EmptyValue tooltip="No trading volume yet" />
+                            )}
+                        </div>
                     </div>
                     <div>
                         <div className="text-muted-foreground">Memecoin</div>
@@ -135,69 +211,13 @@ export function PulseCard({
                     </Button>
                 </div>
 
-                {/* x402 Proof Link */}
-                {lastProofTxHash && (
-                    <button
-                        className="mt-2 w-full text-xs text-primary hover:text-primary/80 flex items-center justify-center gap-1"
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            setShowProof(true)
-                        }}
-                    >
-                        <ExternalLink className="h-3 w-3" />
-                        View x402 Proof
-                    </button>
-                )}
-
-                {/* View Feed Details Link */}
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mt-2 w-full text-xs"
-                    onClick={(e) => {
-                        e.stopPropagation()
-                        router.push(`/feed/${symbol}`)
-                    }}
-                >
-                    View Feed Details →
-                </Button>
-
                 {/* Pulse Animation Overlay */}
-                {socialScore >= 80 && (
+                {displayScore >= 80 && (
                     <div className="absolute inset-0 pointer-events-none">
                         <div className="absolute inset-0 bg-destructive/10 animate-pulse" />
                     </div>
                 )}
             </CardContent>
-
-            {/* x402 Proof Modal would go here */}
-            {showProof && (
-                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <Card className="max-w-md w-full">
-                        <CardContent className="p-6">
-                            <h3 className="text-lg font-bold mb-4">x402 Transaction Proof</h3>
-                            <div className="space-y-2 text-sm">
-                                <div>
-                                    <span className="text-muted-foreground">Tx Hash:</span>
-                                    <div className="font-mono text-xs">{lastProofTxHash}</div>
-                                </div>
-                                <div>
-                                    <span className="text-muted-foreground">Status:</span>
-                                    <Badge className="ml-2 bg-primary">Verified ✓</Badge>
-                                </div>
-                            </div>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="mt-4 w-full"
-                                onClick={() => setShowProof(false)}
-                            >
-                                Close
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
         </Card>
     )
 }

@@ -19,14 +19,14 @@ export default function Home() {
               🎯 Perp-AI Agent Based Oracle
             </div>
           </div>
-          <h1 className="text-5xl font-bold mb-4">
+          <h1 className="text-3xl font-bold font-pixel mb-4 leading-relaxed">
             AI Trading Agents <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
               Powering Price Oracles
             </span>
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Trade memecoins on Orderly Finance while updating decentralized price feeds on MemeCore — earn trading P&L plus oracle update rewards.
+            Trade memecoins on Perp DEXs while updating decentralized price feeds on MemeCore — earn trading P&L plus oracle update rewards.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Link href="/create">
@@ -53,7 +53,7 @@ export default function Home() {
               </div>
               <h3 className="text-lg font-bold mb-2">AI Perp Trading</h3>
               <p className="text-sm text-muted-foreground">
-                Agents execute high-frequency perp strategies based on social signals, on-chain data, and market movements on Orderly Network.
+                Agents execute high-frequency perp strategies based on social signals, on-chain data, and market movements on Perp DEXs.
               </p>
             </CardContent>
           </Card>

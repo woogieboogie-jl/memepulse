@@ -6,7 +6,15 @@ import { Button } from '@/components/ui/button'
 import { TrendingUp, TrendingDown, Play, Pause, Activity, Coins } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
-import { LineChart, Line, Area, ResponsiveContainer, YAxis } from 'recharts'
+import { LineChart, Line, Area, ResponsiveContainer } from 'recharts'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+
+import { useMiningStats, useClaimRewards, useCurrentEpoch, useClaimableRewards } from '@/hooks/use-contracts'
 
 export interface AgentCardProps {
   id: string
@@ -20,6 +28,8 @@ export interface AgentCardProps {
   socialScore: number // 0-100 current social sentiment
   mTokensMined: number // $M rewards earned from oracle contributions
   oracleContributions: number // Number of pulses submitted to chain
+
+  address?: string // Wallet address for on-chain interactions
 
   symbol?: string // Deprecated: use memecoin instead
   status?: 'active' | 'paused' | 'stopped'
@@ -56,6 +66,22 @@ const MEMECOIN_EMOJI: Record<string, string> = {
   BTC: '₿',
 }
 
+// Helper component for empty state display
+function EmptyValue({ tooltip }: { tooltip: string }) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="text-muted-foreground cursor-help">-</span>
+        </TooltipTrigger>
+        <TooltipContent className="z-[9999]" side="top" sideOffset={5}>
+          <p className="font-body text-xs">{tooltip}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
+
 export function AgentCard({
   id,
   name,
@@ -66,7 +92,7 @@ export function AgentCard({
   socialScore = 0,
   mTokensMined = 0,
   oracleContributions = 0,
-  symbol, // Deprecated: use memecoin instead
+  address,
   status = 'active',
   health = 'healthy',
   triggers = [],
@@ -75,6 +101,12 @@ export function AgentCard({
 }: AgentCardProps) {
   const { theme } = useTheme()
   const router = useRouter()
+
+  // Live Mining Stats - epoch-based
+  const { currentEpoch, isLoading: isEpochLoading } = useCurrentEpoch()
+  const { updates, volume, hasData: hasMiningData, isLoading: isMiningLoading } = useMiningStats(address)
+  const { claimable, isLoading: isClaimableLoading } = useClaimableRewards(address, currentEpoch > 1 ? currentEpoch - 1 : 0)
+  const { mutate: claimRewards, isPending: isClaiming } = useClaimRewards()
 
   // Theme-aware sparkline color
   const getSparklineColor = () => {
@@ -86,6 +118,14 @@ export function AgentCard({
     const target = e.target as HTMLElement
     if (target.closest('button') || target.closest('a')) return
     router.push(`/agent/${id}`)
+  }
+
+  const handleClaim = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (currentEpoch > 1) {
+      // Claim for previous epoch
+      claimRewards({ epoch: currentEpoch - 1 })
+    }
   }
 
   const getHealthColor = (h: string) => {
@@ -115,6 +155,10 @@ export function AgentCard({
   const shouldPulse = socialScore >= 80
   const cardClassName = `overflow-hidden transition-all cursor-pointer group h-full hover:border-primary/50 ${shouldPulse ? 'animate-pulse-glow' : ''
     }`
+
+  // Determine displayed contributions
+  const displayContributions = hasMiningData ? updates : oracleContributions
+  const displayMined = hasMiningData ? volume : mTokensMined
 
   return (
     <Card className={cardClassName} onClick={handleCardClick}>
@@ -219,19 +263,48 @@ export function AgentCard({
           </div>
         </div>
 
-        {/* $M Mined Display - NEW! */}
+        {/* $M Mined Display */}
         <div className="bg-primary/10 border border-primary/20 rounded-md p-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <Coins className="h-4 w-4 text-primary" />
               <span className="text-xs font-medium text-primary">$M Mined</span>
             </div>
-            <span className="text-sm font-bold text-primary">
-              {mTokensMined.toLocaleString()}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-primary">
+                {isMiningLoading ? (
+                  <span className="animate-pulse">...</span>
+                ) : hasMiningData ? (
+                  displayMined.toLocaleString()
+                ) : mTokensMined > 0 ? (
+                  mTokensMined.toLocaleString()
+                ) : (
+                  <EmptyValue tooltip="No mining activity yet" />
+                )}
+              </span>
+              {claimable > 0 && !isClaimableLoading && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="h-6 text-[10px] px-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={handleClaim}
+                  disabled={isClaiming || isEpochLoading}
+                >
+                  {isClaiming ? '...' : `Claim ${claimable.toFixed(1)}`}
+                </Button>
+              )}
+            </div>
           </div>
           <div className="text-[10px] text-muted-foreground mt-0.5">
-            {oracleContributions} oracle contributions
+            {isMiningLoading ? (
+              <span className="animate-pulse">...</span>
+            ) : hasMiningData ? (
+              `${displayContributions} oracle contributions`
+            ) : oracleContributions > 0 ? (
+              `${oracleContributions} oracle contributions`
+            ) : (
+              <EmptyValue tooltip="No contributions yet" />
+            )}
           </div>
         </div>
 

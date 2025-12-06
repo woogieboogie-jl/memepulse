@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * @title AgentRegistry
  * @notice Manages agent registration per feed and tracks credibility scores
  * @dev ERC-8004 inspired reputation pattern for oracle credibility
+ *      Registration is restricted to owner and authorized registrars
  */
 contract AgentRegistry is Ownable {
     // ============ State Variables ============
@@ -14,6 +15,9 @@ contract AgentRegistry is Ownable {
     // Role-based access control
     address public aggregator;
     address public distributor;
+    
+    // Registrar role - addresses authorized to register agents
+    mapping(address => bool) public registrars;
 
     // agent => feed symbol => registered
     mapping(address => mapping(string => bool)) public registrations;
@@ -48,6 +52,7 @@ contract AgentRegistry is Ownable {
     event CredibilityUpdated(address indexed agent, uint256 oldScore, uint256 newScore);
     event AggregatorSet(address indexed aggregator);
     event DistributorSet(address indexed distributor);
+    event RegistrarUpdated(address indexed registrar, bool authorized);
     
     event UpdateRecorded(
         address indexed agent,
@@ -63,6 +68,14 @@ contract AgentRegistry is Ownable {
 
     modifier onlyDistributor() {
         require(msg.sender == distributor, "Only distributor");
+        _;
+    }
+    
+    /**
+     * @notice Only owner or authorized registrars can call
+     */
+    modifier onlyRegistrar() {
+        require(msg.sender == owner() || registrars[msg.sender], "Not authorized registrar");
         _;
     }
 
@@ -91,13 +104,32 @@ contract AgentRegistry is Ownable {
         distributor = _distributor;
         emit DistributorSet(_distributor);
     }
+    
+    /**
+     * @notice Add or remove a registrar (owner only)
+     * @param registrar Address to authorize/deauthorize
+     * @param authorized True to authorize, false to revoke
+     */
+    function setRegistrar(address registrar, bool authorized) external onlyOwner {
+        require(registrar != address(0), "Invalid registrar");
+        registrars[registrar] = authorized;
+        emit RegistrarUpdated(registrar, authorized);
+    }
+    
+    /**
+     * @notice Check if an address is an authorized registrar
+     * @param account Address to check
+     */
+    function isRegistrar(address account) external view returns (bool) {
+        return account == owner() || registrars[account];
+    }
 
     /**
-     * @notice Register an agent to a specific feed
+     * @notice Register an agent to a specific feed (registrar only)
      * @param agent Address of the agent
      * @param feedSymbol Symbol of the feed (e.g., "DOGE")
      */
-    function registerAgent(address agent, string calldata feedSymbol) external {
+    function registerAgent(address agent, string calldata feedSymbol) external onlyRegistrar {
         require(!registrations[agent][feedSymbol], "Already registered");
         
         registrations[agent][feedSymbol] = true;

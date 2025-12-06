@@ -18,12 +18,36 @@ import {
 } from "@/components/ui/table"
 import { ArrowLeft, TrendingUp, TrendingDown, ExternalLink, Play, Pause, Settings, Zap, Activity, Clock, BarChart2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { getAgentById } from '@/lib/agents-data'
 import { useRouter, useParams } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { DepositModal } from '@/components/modals/deposit-modal'
 import { KeyRenewalModal } from '@/components/modals/key-renewal-modal'
+
+import { useCredibility, useMiningStats } from '@/hooks/use-contracts'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+
+// Helper component for empty state display
+function EmptyValue({ tooltip }: { tooltip: string }) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="text-muted-foreground cursor-help">-</span>
+        </TooltipTrigger>
+        <TooltipContent className="z-[9999]" side="top" sideOffset={5}>
+          <p className="font-body text-xs">{tooltip}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
 
 export default function AgentDetailPage() {
   const { theme } = useTheme()
@@ -34,6 +58,15 @@ export default function AgentDetailPage() {
   const router = useRouter()
   const params = useParams()
   const [showRenewalModal, setShowRenewalModal] = useState(false)
+
+  // Live Data Hooks
+  const { credibility, isLoading: isCredibilityLoading } = useCredibility(agent?.address)
+  const { updates, volume, hasData: hasMiningData, isLoading: isMiningLoading } = useMiningStats(agent?.address)
+
+  // Display values with fallback
+  const displaySocialScore = isCredibilityLoading ? agent?.socialScore || 0 : credibility
+  const displayMined = hasMiningData ? volume : (agent?.mTokensMined || 0)
+  const displayContributions = hasMiningData ? updates : (agent?.oracleContributions || 0)
 
   const handleTogglePause = () => {
     if (agent) {
@@ -167,17 +200,37 @@ export default function AgentDetailPage() {
                       <div>
                         <p className="text-sm text-muted-foreground mb-1">Social Pulse</p>
                         <div className="flex items-center gap-2">
-                          <p className="text-2xl font-bold">{agent.socialScore || 0}</p>
+                          <p className="text-2xl font-bold">
+                            {isCredibilityLoading ? <span className="animate-pulse">...</span> : displaySocialScore}
+                          </p>
                           <span className="text-sm text-muted-foreground">/100</span>
                         </div>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground mb-1">$M Mined</p>
-                        <p className="text-2xl font-bold text-accent">{(agent.mTokensMined || 0).toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground mb-1">wM Mined</p>
+                        <p className="text-2xl font-bold text-accent">
+                          {isMiningLoading ? (
+                            <span className="animate-pulse">...</span>
+                          ) : hasMiningData ? (
+                            displayMined.toLocaleString()
+                          ) : displayMined > 0 ? (
+                            displayMined.toLocaleString()
+                          ) : (
+                            <EmptyValue tooltip="No mining activity yet" />
+                          )}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground mb-1">Oracle Contributions</p>
-                        <p className="text-2xl font-bold">{agent.oracleContributions || 0}</p>
+                        <p className="text-2xl font-bold">
+                          {isMiningLoading ? (
+                            <span className="animate-pulse">...</span>
+                          ) : displayContributions > 0 ? (
+                            displayContributions
+                          ) : (
+                            <EmptyValue tooltip="No contributions yet" />
+                          )}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -359,7 +412,7 @@ export default function AgentDetailPage() {
                           dx={-10}
                           domain={['auto', 'auto']}
                         />
-                        <Tooltip
+                        <RechartsTooltip
                           contentStyle={{
                             backgroundColor: chartColors.tooltipBg,
                             border: `1px solid ${chartColors.tooltipBorder}`,
@@ -457,7 +510,7 @@ export default function AgentDetailPage() {
                     {agent.memecoin} Pulse Oracle
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {agent.oracleContributions} submissions • {agent.mTokensMined} $M mined
+                    {displayContributions} submissions • {displayMined.toLocaleString()} wM mined
                   </p>
                 </div>
                 <Button asChild>

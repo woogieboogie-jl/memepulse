@@ -15,6 +15,7 @@ export const generatePerformanceData = (startValue: number, trend: 'up' | 'down'
 // Agent detail data structure
 export interface AgentDetailData {
   id: string
+  address?: string // Wallet address for on-chain data
   name: string
   creator?: string
   strategy: string
@@ -86,6 +87,7 @@ export interface AgentDetailData {
 export const allAgentsData: Record<string, AgentDetailData> = {
   '1': {
     id: '1',
+    address: '0x1234567890123456789012345678901234567890', // Mock address for testing
     name: 'DOGE Pulse',
     creator: '0x742d...4e89',
     strategy: 'Monitors DOGE social sentiment and whale movements. Trades on Elon tweets and large wallet transfers.',

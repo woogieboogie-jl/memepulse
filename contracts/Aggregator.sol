@@ -84,16 +84,20 @@ contract Aggregator is Ownable, ReentrancyGuard {
 
     /**
      * @notice Submit agent update report
-     * @param agent Address of the submitting agent
+     * @param agent Address of the submitting agent (must be msg.sender)
      * @param feedSymbol Symbol of the feed
      * @param report Update report struct
+     * @dev Only the registered agent itself can submit updates
      */
     function submitUpdate(
         address agent,
         string calldata feedSymbol,
         AgentUpdateReport calldata report
     ) external nonReentrant {
-        // Validate
+        // Authentication: caller must be the agent
+        require(msg.sender == agent, "Caller must be the registered agent");
+        
+        // Validate registration
         require(agentRegistry.isRegistered(agent, feedSymbol), "Agent not registered");
         require(report.volume > 0, "Volume must be > 0");
         require(report.volume <= MAX_VOLUME, "Volume too high");  // Prevent overflow

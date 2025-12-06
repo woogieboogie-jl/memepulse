@@ -1,153 +1,81 @@
 /**
  * Memecoin Oracle Feed Contract Configuration
  * 
- * Each memecoin has a dedicated oracle feed contract where AI agents
- * contribute social pulse data and earn $M tokens.
- * 
- * All contracts are deployed on MemeCore network.
+ * This file re-exports from the central contract registry.
+ * DO NOT add addresses here - use lib/contracts.ts instead.
  */
+
+import { 
+  CONTRACTS, 
+  MEMECORE_NETWORK, 
+  MEMECOIN_INFO,
+  getSupportedMemecoins as _getSupportedMemecoins,
+  getMemecoinEmoji as _getMemecoinEmoji,
+  getMemecoinName as _getMemecoinName,
+  isMemecoinSupported as _isMemecoinSupported
+} from './contracts';
+
+// Re-export network config
+export { MEMECORE_NETWORK };
+
+// ============================================
+// FEED CONTRACT INTERFACE
+// ============================================
 
 export interface MemecoinFeedContract {
-    symbol: string
-    name: string
-    emoji: string
-    contractAddress: string
-    network: 'MemeCore'
-    updateFrequency: string
-    chainId: number
-    rpcUrl: string
+  symbol: string;
+  name: string;
+  emoji: string;
+  contractAddress: string;
+  network: 'MemeCore';
+  updateFrequency: string;
+  chainId: number;
+  rpcUrl: string;
 }
 
-/**
- * MemeCore Network Configuration
- */
-export const MEMECORE_NETWORK = {
-    chainId: 12227332,
-    chainName: 'MemeCore',
-    rpcUrl: 'https://hub-rpc.memecore.com',
-    blockExplorer: 'https://formicarium.memecorescan.io',
-    nativeCurrency: {
-        name: 'MEME',
-        symbol: 'MEME',
-        decimals: 18,
-    },
-}
+// ============================================
+// DERIVED FEED CONTRACTS
+// ============================================
 
 /**
- * Central registry of all supported memecoin oracle feed contracts
- * All contracts are deployed on MemeCore network (Chain ID: 12227332)
+ * Central registry of all supported memecoin oracle feed contracts.
+ * Derived from lib/contracts.ts - the single source of truth.
  */
-export const MEMECOIN_FEED_CONTRACTS: Record<string, MemecoinFeedContract> = {
-    DOGE: {
-        symbol: 'DOGE',
-        name: 'Dogecoin',
-        emoji: '🐕',
-        contractAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
-        network: 'MemeCore',
-        updateFrequency: 'Every 5 minutes',
-        chainId: MEMECORE_NETWORK.chainId,
-        rpcUrl: MEMECORE_NETWORK.rpcUrl,
-    },
-    PEPE: {
-        symbol: 'PEPE',
-        name: 'Pepe',
-        emoji: '🐸',
-        contractAddress: '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2',
-        network: 'MemeCore',
-        updateFrequency: 'Every 5 minutes',
-        chainId: MEMECORE_NETWORK.chainId,
-        rpcUrl: MEMECORE_NETWORK.rpcUrl,
-    },
-    SHIB: {
-        symbol: 'SHIB',
-        name: 'Shiba Inu',
-        emoji: '🐕‍🦺',
-        contractAddress: '0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE',
-        network: 'MemeCore',
-        updateFrequency: 'Every 5 minutes',
-        chainId: MEMECORE_NETWORK.chainId,
-        rpcUrl: MEMECORE_NETWORK.rpcUrl,
-    },
-    FLOKI: {
-        symbol: 'FLOKI',
-        name: 'Floki',
-        emoji: '🐺',
-        contractAddress: '0xcf0C122c6b73ff809C693DB761e7BaeBe62b6a2E',
-        network: 'MemeCore',
-        updateFrequency: 'Every 5 minutes',
-        chainId: MEMECORE_NETWORK.chainId,
-        rpcUrl: MEMECORE_NETWORK.rpcUrl,
-    },
-    WIF: {
-        symbol: 'WIF',
-        name: 'dogwifhat',
-        emoji: '🎩',
-        contractAddress: '0x4e68Ccd3E89f51C3074ca5072bbAC773960dFa36',
-        network: 'MemeCore',
-        updateFrequency: 'Every 5 minutes',
-        chainId: MEMECORE_NETWORK.chainId,
-        rpcUrl: MEMECORE_NETWORK.rpcUrl,
-    },
-    BONK: {
-        symbol: 'BONK',
-        name: 'Bonk',
-        emoji: '💥',
-        contractAddress: '0xDeDC5E5d2d9B94991f8E86B46F6EC0FDE1D3C813',
-        network: 'MemeCore',
-        updateFrequency: 'Every 5 minutes',
-        chainId: MEMECORE_NETWORK.chainId,
-        rpcUrl: MEMECORE_NETWORK.rpcUrl,
-    },
-    BTC: {
-        symbol: 'BTC',
-        name: 'Bitcoin',
-        emoji: '₿',
-        contractAddress: '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6',
-        network: 'MemeCore',
-        updateFrequency: 'Every 5 minutes',
-        chainId: MEMECORE_NETWORK.chainId,
-        rpcUrl: MEMECORE_NETWORK.rpcUrl,
-    },
-}
+export const MEMECOIN_FEED_CONTRACTS: Record<string, MemecoinFeedContract> = 
+  Object.entries(CONTRACTS.PRICE_FEEDS).reduce((acc, [symbol, address]) => {
+    const info = MEMECOIN_INFO[symbol];
+    acc[symbol] = {
+      symbol,
+      name: info?.name || symbol,
+      emoji: info?.emoji || '🪙',
+      contractAddress: address,
+      network: 'MemeCore',
+      updateFrequency: 'Every 5 minutes',
+      chainId: MEMECORE_NETWORK.chainId,
+      rpcUrl: MEMECORE_NETWORK.rpcUrl,
+    };
+    return acc;
+  }, {} as Record<string, MemecoinFeedContract>);
 
-/**
- * Get all supported memecoin symbols
- */
-export function getSupportedMemecoins(): string[] {
-    return Object.keys(MEMECOIN_FEED_CONTRACTS)
-}
+// ============================================
+// HELPER FUNCTIONS (Re-exports)
+// ============================================
+
+export const getSupportedMemecoins = _getSupportedMemecoins;
+export const getMemecoinEmoji = _getMemecoinEmoji;
+export const getMemecoinName = _getMemecoinName;
+export const isMemecoinSupported = _isMemecoinSupported;
 
 /**
  * Get feed contract for a specific memecoin
  */
 export function getFeedContract(symbol: string): MemecoinFeedContract | undefined {
-    return MEMECOIN_FEED_CONTRACTS[symbol.toUpperCase()]
+  return MEMECOIN_FEED_CONTRACTS[symbol.toUpperCase()];
 }
 
 /**
  * Get all feed contracts as an array
  */
 export function getAllFeedContracts(): MemecoinFeedContract[] {
-    return Object.values(MEMECOIN_FEED_CONTRACTS)
-}
-
-/**
- * Check if a memecoin is supported
- */
-export function isMemecoinSupported(symbol: string): boolean {
-    return symbol.toUpperCase() in MEMECOIN_FEED_CONTRACTS
-}
-
-/**
- * Get memecoin emoji
- */
-export function getMemecoinEmoji(symbol: string): string {
-    return MEMECOIN_FEED_CONTRACTS[symbol.toUpperCase()]?.emoji || '🪙'
-}
-
-/**
- * Get memecoin name
- */
-export function getMemecoinName(symbol: string): string {
-    return MEMECOIN_FEED_CONTRACTS[symbol.toUpperCase()]?.name || symbol
+  return Object.values(MEMECOIN_FEED_CONTRACTS);
 }

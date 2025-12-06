@@ -16,9 +16,8 @@ import { AgentComparisonChart } from '@/components/agent-comparison-chart'
 import { AgentRankingTable } from '@/components/agent-ranking-table'
 import { MarketplaceCard } from '@/components/marketplace-card'
 import { getPublicAgents } from '@/lib/agents-data'
-import { Search, Sparkles, TrendingUp, Activity } from 'lucide-react'
+import { Search, TrendingUp, Activity } from 'lucide-react'
 import { useState } from 'react'
-import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 
 // Memecoin categories with emoji
@@ -36,7 +35,6 @@ const MEMECOIN_CATEGORIES = [
 export default function MarketplacePage() {
   const [sortBy, setSortBy] = useState('social')
   const [searchQuery, setSearchQuery] = useState('')
-  const [showKOLOnly, setShowKOLOnly] = useState(false)
   const [selectedMemecoin, setSelectedMemecoin] = useState('ALL')
 
   const publicAgents = getPublicAgents()
@@ -69,9 +67,8 @@ export default function MarketplacePage() {
     }
   })
 
-  // Apply KOL and search filters
+  // Apply search filters
   const filteredAgents = sortedAgents.filter(agent => {
-    if (showKOLOnly && !agent.isKOL) return false
     return agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       agent.strategy.toLowerCase().includes(searchQuery.toLowerCase())
   })
@@ -149,19 +146,6 @@ export default function MarketplacePage() {
             </div>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <Sparkles className={`h-4 w-4 ${showKOLOnly ? 'text-purple-500' : 'text-muted-foreground'}`} />
-                <Label htmlFor="kol-filter" className="text-sm font-medium cursor-pointer">
-                  KOL Only
-                </Label>
-                <Switch
-                  id="kol-filter"
-                  checked={showKOLOnly}
-                  onCheckedChange={setShowKOLOnly}
-                  aria-label="Filter to show only KOL agents"
-                  className="data-[state=checked]:bg-purple-500 data-[state=checked]:hover:bg-purple-600"
-                />
-              </div>
-              <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Sort by:</span>
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="w-[180px]">
@@ -222,6 +206,7 @@ export default function MarketplacePage() {
                         <MarketplaceCard
                           key={agent.id}
                           {...agent}
+                          address={agent.address}
                           winRate={agent.winRate || 0}
                           sharpeRatio={agent.sharpeRatio || 0}
                         />
@@ -238,6 +223,7 @@ export default function MarketplacePage() {
                 <MarketplaceCard
                   key={agent.id}
                   {...agent}
+                  address={agent.address}
                   winRate={agent.winRate || 0}
                   sharpeRatio={agent.sharpeRatio || 0}
                 />

@@ -4,14 +4,14 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { TrendingUp, TrendingDown, Users } from 'lucide-react'
+import { TrendingUp, TrendingDown, Users, Activity } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { KOLBadge } from '@/components/kol-badge'
-import { SocialOracleStatus } from '@/components/social-oracle-status'
 import { useTheme } from 'next-themes'
 import { LineChart, Line, Area, ResponsiveContainer } from 'recharts'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { DelegationModal } from '@/components/modals/delegation-modal'
+
+import { useCredibility } from '@/hooks/use-contracts'
 
 export interface MarketplaceCardProps {
     id: string
@@ -26,6 +26,8 @@ export interface MarketplaceCardProps {
     memecoin: string
     socialScore?: number
     mTokensMined?: number
+
+    address?: string // Wallet address for on-chain interactions
 
     // Marketplace specific
     creator?: string
@@ -42,16 +44,6 @@ export interface MarketplaceCardProps {
     triggers?: string[]
     contexts?: string[]
     performanceData?: Array<{ time: string; value: number }>
-
-    // KOL specific
-    isKOL?: boolean
-    kolName?: string
-    socialOracle?: {
-        status: 'active' | 'inactive'
-        lastUpdate: string
-        followerCount?: number
-        tradingSignals?: number
-    }
 }
 
 export function MarketplaceCard({
@@ -65,6 +57,7 @@ export function MarketplaceCard({
     memecoin,
     socialScore = 0,
     mTokensMined = 0,
+    address,
     creator,
     totalDeposits = 0,
     minDeposit = 100,
@@ -75,17 +68,19 @@ export function MarketplaceCard({
     triggers = [],
     contexts = [],
     performanceData = [],
-    isKOL = false,
-    kolName,
-    socialOracle,
 }: MarketplaceCardProps) {
     const [showDelegationModal, setShowDelegationModal] = useState(false)
     const { theme } = useTheme()
     const router = useRouter()
 
+    // Live Credibility Score
+    const { credibility, isLoading: isCredibilityLoading } = useCredibility(address)
+
+    // Use live score if available, otherwise fallback to static prop
+    const displayScore = address ? credibility : socialScore
+
     const getSparklineColor = () => {
         if (pnl < 0) return '#ef4444'
-        if (isKOL) return '#a78bfa'
         return theme === 'dark' ? '#22c55e' : '#10b981'
     }
 
@@ -107,10 +102,7 @@ export function MarketplaceCard({
     return (
         <>
             <Card
-                className={`overflow-hidden transition-all cursor-pointer group h-full ${isKOL
-                        ? 'border-2 border-purple-500/50 bg-gradient-to-br from-purple-500/5 to-violet-500/5 hover:border-purple-500/80 hover:shadow-lg hover:shadow-purple-500/20'
-                        : 'hover:border-primary/50'
-                    }`}
+                className="overflow-hidden transition-all cursor-pointer group h-full hover:border-primary/50"
                 onClick={handleCardClick}
             >
                 <CardHeader className="pb-2.5">
@@ -121,10 +113,16 @@ export function MarketplaceCard({
                                     <CardTitle className="text-2xl leading-tight group-hover:text-primary transition-colors">
                                         {name}
                                     </CardTitle>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <Activity className="h-3 w-3 text-muted-foreground" />
+                                        <span className="text-xs text-muted-foreground">Pulse:</span>
+                                        <span className={`text-xs font-bold ${displayScore >= 80 ? 'text-destructive' : displayScore >= 60 ? 'text-accent' : 'text-primary'}`}>
+                                            {isCredibilityLoading ? '...' : displayScore}/100
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                    {isKOL && <KOLBadge kolName={kolName} className="text-[10px] py-0.5 px-2 h-5" />}
                                     {creator && <span className="text-xs text-muted-foreground">by {creator}</span>}
 
                                     <TooltipProvider>
@@ -174,12 +172,6 @@ export function MarketplaceCard({
 
                     <div className="space-y-2">
                         <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{strategy}</p>
-
-                        {isKOL && socialOracle && (
-                            <div className="mt-2">
-                                <SocialOracleStatus {...socialOracle} />
-                            </div>
-                        )}
 
                         {(triggers.length > 0 || contexts.length > 0) && (
                             <div className="flex flex-wrap gap-1">

@@ -3,111 +3,121 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Coins, TrendingUp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 
-export function PoMGauge() {
-    // Mock PoM data - in real app would come from oracle contributions
-    const pomStrength = 78 // 0-100 score
-    const miningRate = 12.4 // $M per hour
-    const efficiency = 92 // percentage
+import { useCurrentEpoch, useTimeUntilNextEpoch, useEpochTotalVolume } from '@/hooks/use-contracts'
 
-    // Color based on strength
-    const getColor = () => {
-        if (pomStrength >= 80) return 'text-green-500'
-        if (pomStrength >= 60) return 'text-yellow-500'
-        return 'text-orange-500'
-    }
-
-    const getBgColor = () => {
-        if (pomStrength >= 80) return 'bg-green-500'
-        if (pomStrength >= 60) return 'bg-yellow-500'
-        return 'bg-orange-500'
-    }
-
+// Helper component for empty state display
+function EmptyValue({ tooltip }: { tooltip: string }) {
     return (
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 hover:border-primary/50 transition-all cursor-help">
-                        <CardContent className="p-3">
-                            <div className="flex items-center gap-3">
-                                {/* Icon */}
-                                <div className="flex-shrink-0">
-                                    <div className="relative">
-                                        <Coins className={`h-6 w-6 ${getColor()}`} />
-                                        <div className="absolute -top-1 -right-1">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Gauge Info */}
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-xs font-medium text-muted-foreground">PoM Gauge</span>
-                                        <Badge variant="outline" className="text-[9px] h-4 px-1">
-                                            Active
-                                        </Badge>
-                                    </div>
-
-                                    {/* Progress Bar */}
-                                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                                        <div
-                                            className={`h-full ${getBgColor()} transition-all duration-300`}
-                                            style={{ width: `${pomStrength}%` }}
-                                        />
-                                    </div>
-
-                                    {/* Stats */}
-                                    <div className="flex items-center gap-3 mt-1">
-                                        <span className={`text-sm font-bold ${getColor()}`}>
-                                            {pomStrength}%
-                                        </span>
-                                        <span className="text-[10px] text-muted-foreground">
-                                            {miningRate} $M/hr
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Efficiency Badge */}
-                                <div className="flex-shrink-0">
-                                    <div className="flex flex-col items-center">
-                                        <TrendingUp className="h-4 w-4 text-accent mb-0.5" />
-                                        <span className="text-[9px] font-bold text-accent">{efficiency}%</span>
-                                        <span className="text-[7px] text-muted-foreground">Eff</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <span className="text-muted-foreground cursor-help">-</span>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-xs">
-                    <div className="space-y-1">
-                        <p className="font-semibold text-sm">Proof of Mining Gauge</p>
-                        <p className="text-xs text-muted-foreground">
-                            Your oracle contribution strength determines $M token mining rate
-                        </p>
-                        <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
-                            <div>
-                                <span className="text-muted-foreground">Strength:</span>
-                                <span className="font-bold ml-1">{pomStrength}%</span>
-                            </div>
-                            <div>
-                                <span className="text-muted-foreground">Mining:</span>
-                                <span className="font-bold ml-1">{miningRate} $M/hr</span>
-                            </div>
-                            <div>
-                                <span className="text-muted-foreground">Efficiency:</span>
-                                <span className="font-bold ml-1">{efficiency}%</span>
-                            </div>
-                            <div>
-                                <span className="text-muted-foreground">Daily:</span>
-                                <span className="font-bold ml-1">{(miningRate * 24).toFixed(1)} $M</span>
-                            </div>
-                        </div>
-                    </div>
+                <TooltipContent className="z-[9999]" side="top" sideOffset={5}>
+                    <p className="font-body text-xs">{tooltip}</p>
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
+    )
+}
+
+// Format seconds to HH:MM:SS
+function formatTimeRemaining(seconds: number): string {
+    if (seconds <= 0) return '00:00:00'
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
+
+export function PoMGauge() {
+    // Fetch real data from contracts
+    const { currentEpoch, isLoading: isEpochLoading } = useCurrentEpoch()
+    const { secondsRemaining, isLoading: isTimeLoading } = useTimeUntilNextEpoch()
+    const { totalVolume, hasData: hasVolumeData, isLoading: isVolumeLoading } = useEpochTotalVolume(currentEpoch)
+
+    // Distribution rate (from ProtocolConfig - could also be fetched)
+    const distributionRate = 0.05 // 0.05 $M per $1 volume (default)
+
+    // Calculate estimated rewards
+    const estimatedRewards = totalVolume * distributionRate
+
+    const isLoading = isEpochLoading || isTimeLoading || isVolumeLoading
+
+    return (
+        <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 hover:border-primary/50 transition-all">
+            <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                        <Coins className="h-5 w-5 text-primary" />
+                        <h3 className="font-bold text-sm">Mining Rewards</h3>
+                        {!isEpochLoading && currentEpoch > 0 && (
+                            <span className="text-xs text-muted-foreground">(Epoch {currentEpoch})</span>
+                        )}
+                    </div>
+                    <Badge variant="outline" className="text-xs border-primary/50 text-primary">
+                        {isTimeLoading ? (
+                            <span className="animate-pulse">...</span>
+                        ) : secondsRemaining > 0 ? (
+                            `Ends: ${formatTimeRemaining(secondsRemaining)}`
+                        ) : (
+                            'New epoch starting...'
+                        )}
+                    </Badge>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                    {/* Estimated Rewards */}
+                    <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">Est. Rewards</div>
+                        <div className="text-xl font-bold font-pixel text-primary">
+                            {isLoading ? (
+                                <span className="animate-pulse">...</span>
+                            ) : hasVolumeData && estimatedRewards > 0 ? (
+                                <>
+                                    {estimatedRewards.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-xs font-sans">wM</span>
+                                </>
+                            ) : (
+                                <EmptyValue tooltip="No volume in current epoch" />
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Epoch Volume */}
+                    <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">Epoch Volume</div>
+                        <div className="text-lg font-bold">
+                            {isVolumeLoading ? (
+                                <span className="animate-pulse">...</span>
+                            ) : hasVolumeData ? (
+                                `$${(totalVolume / 1000).toFixed(1)}K`
+                            ) : (
+                                <EmptyValue tooltip="No trading volume yet" />
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Distribution Rate */}
+                    <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">Rate</div>
+                        <div className="text-lg font-bold text-accent">
+                            {distributionRate} <span className="text-xs text-muted-foreground">wM/$</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-border/50 text-[10px] text-muted-foreground flex items-center gap-1.5">
+                    <TrendingUp className="h-3 w-3" />
+                    <span>Rewards are distributed based on your contribution to the protocol&apos;s volume.</span>
+                </div>
+            </CardContent>
+        </Card>
     )
 }

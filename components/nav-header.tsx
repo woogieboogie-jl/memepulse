@@ -5,22 +5,28 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 
-import { Key, AlertTriangle, Coins } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { Key, AlertTriangle, Coins, LayoutDashboard } from 'lucide-react'
 import { KeyRenewalModal } from '@/components/modals/key-renewal-modal'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
-import { useAccount, useConnect, useDisconnect } from 'wagmi'
-import { injected } from 'wagmi/connectors'
+import { useWallet } from '@/hooks/use-wallet'
+import { useWMBalance } from '@/hooks/use-contracts'
 
 export function NavHeader() {
-  const { address, isConnected } = useAccount()
-  const { connect } = useConnect()
-  const { disconnect } = useDisconnect()
+  const { address, isConnected, connect, disconnect, isConnecting } = useWallet()
   const [isRegistered, setIsRegistered] = useState(false)
   const [keyExpired, setKeyExpired] = useState(false)
   const [showKeyModal, setShowKeyModal] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
+
+  // Fetch real wM balance
+  const { balance: wmBalance, isLoading: isBalanceLoading } = useWMBalance(address)
 
   // Check registration and key status
   useEffect(() => {
@@ -72,7 +78,7 @@ export function NavHeader() {
     if (isConnected) {
       disconnect()
     } else {
-      connect({ connector: injected() })
+      connect()
     }
   }
 
@@ -106,18 +112,37 @@ export function NavHeader() {
 
   const buttonState = getKeyButtonState()
 
+  // Format balance for display
+  const formatBalance = (bal: number) => {
+    if (bal >= 1000000) return `${(bal / 1000000).toFixed(2)}M`
+    if (bal >= 1000) return `${(bal / 1000).toFixed(1)}K`
+    return bal.toFixed(2)
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold">
+            <span className="text-xl font-bold font-pixel">
               <span className="text-primary">Meme</span>
               <span className="text-accent">Pulse</span>
             </span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
+            <Link
+              href="/oracle"
+              className={`text-sm font-medium transition-colors relative ${pathname === '/oracle'
+                ? 'text-primary font-semibold'
+                : 'text-muted-foreground hover:text-foreground'
+                }`}
+            >
+              Pulses
+              {pathname === '/oracle' && (
+                <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-primary rounded-full" />
+              )}
+            </Link>
             <Link
               href="/marketplace"
               className={`text-sm font-medium transition-colors relative ${pathname === '/marketplace'
@@ -131,18 +156,6 @@ export function NavHeader() {
               )}
             </Link>
             <Link
-              href="/oracle"
-              className={`text-sm font-medium transition-colors relative ${pathname === '/oracle'
-                ? 'text-primary font-semibold'
-                : 'text-muted-foreground hover:text-foreground'
-                }`}
-            >
-              Memecoin Pulses
-              {pathname === '/oracle' && (
-                <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-primary rounded-full" />
-              )}
-            </Link>
-            <Link
               href="/create"
               className={`text-sm font-medium transition-colors relative ${pathname === '/create'
                 ? 'text-primary font-semibold'
@@ -151,18 +164,6 @@ export function NavHeader() {
             >
               Create Agent
               {pathname === '/create' && (
-                <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-primary rounded-full" />
-              )}
-            </Link>
-            <Link
-              href="/my-agents"
-              className={`text-sm font-medium transition-colors relative ${pathname === '/my-agents'
-                ? 'text-primary font-semibold'
-                : 'text-muted-foreground hover:text-foreground'
-                }`}
-            >
-              Command Center
-              {pathname === '/my-agents' && (
                 <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-primary rounded-full" />
               )}
             </Link>
@@ -182,15 +183,46 @@ export function NavHeader() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* $M Token Balance - NEW! */}
-          {isConnected && isRegistered && (
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-full">
-              <Coins className="h-4 w-4 text-primary" />
-              <span className="text-sm font-bold text-primary">1,240</span>
-              <span className="text-xs text-muted-foreground">$M</span>
-            </div>
+          {/* wM Token Balance */}
+          {isConnected && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-full cursor-help">
+                    <Coins className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-bold text-primary">
+                      {isBalanceLoading ? (
+                        <span className="animate-pulse">...</span>
+                      ) : wmBalance > 0 ? (
+                        formatBalance(wmBalance)
+                      ) : (
+                        '-'
+                      )}
+                    </span>
+                    <span className="text-xs text-muted-foreground">wM</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="z-[9999]" side="bottom" sideOffset={5}>
+                  <p className="font-body text-xs">
+                    {wmBalance > 0 
+                      ? `${wmBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })} wM tokens`
+                      : 'No wM tokens yet'}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
 
+          {/* Command Center Icon */}
+          <Button
+            variant="outline"
+            size="icon"
+            className="border-primary text-primary hover:bg-primary/10 hover:text-primary"
+            onClick={() => router.push('/my-agents')}
+            title="Command Center"
+          >
+            <LayoutDashboard className="h-5 w-5" />
+          </Button>
 
           {isConnected && (
             <div className="relative">
@@ -217,8 +249,8 @@ export function NavHeader() {
               {address?.slice(0, 6)}...{address?.slice(-4)}
             </Button>
           ) : (
-            <Button onClick={handleWalletToggle}>
-              Connect Wallet
+            <Button onClick={handleWalletToggle} disabled={isConnecting}>
+              {isConnecting ? 'Connecting...' : 'Connect Wallet'}
             </Button>
           )}
         </div>

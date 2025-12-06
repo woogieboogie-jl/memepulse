@@ -32,6 +32,8 @@ import { OracleUpdateFeed } from '@/components/oracle-update-feed'
 import { FeedAnalyticsCharts } from '@/components/feed-analytics-charts'
 import { allAgentsData } from '@/lib/agents-data'
 
+import { useOraclePrice, useAggregatorStats } from '@/hooks/use-contracts'
+
 export default function FeedPage({ params }: { params: Promise<{ symbol: string }> }) {
     const { symbol: paramSymbol } = use(params)
     const symbol = paramSymbol.toUpperCase()
@@ -39,7 +41,16 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
 
     // Get contract and feed data with error handling
     const contract = getFeedContract(symbol)
-    const feedStats = getFeedStats(symbol)
+
+    // Live Data Hooks
+    const { price, hasData: hasPriceData, updatedAt, isLoading: isPriceLoading } = useOraclePrice(symbol as any)
+    const { dailyUpdates, hasData: hasStatsData, isLoading: isStatsLoading } = useAggregatorStats(symbol as any)
+
+    // Fallback or derived stats
+    const feedStats = getFeedStats(symbol) // Keep for static fallbacks if needed
+    
+    // Active agents - mock value since contract doesn't track this
+    const activeAgents = hasStatsData ? Math.max(1, Math.floor(dailyUpdates / 24)) : feedStats?.activeAgents || 0
 
     // Error: Invalid memecoin symbol
     if (!contract) {
@@ -73,49 +84,8 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
     }
 
     // Warning: Contract exists but no stats (contract not deployed yet)
-    if (!feedStats) {
-        return (
-            <div className="min-h-screen bg-background/80 backdrop-blur-sm">
-                <NavHeader />
-                <main className="container mx-auto px-4 py-16">
-                    <Card className="max-w-2xl mx-auto border-amber-500/50">
-                        <CardContent className="pt-6 text-center py-12">
-                            <div className="text-6xl mb-4">⚠️</div>
-                            <h1 className="text-2xl font-bold mb-2">Feed Not Deployed</h1>
-                            <p className="text-muted-foreground mb-4">
-                                The {getMemecoinEmoji(symbol)} {getMemecoinName(symbol)} oracle feed contract exists but hasn't been deployed yet.
-                            </p>
-                            <div className="bg-muted/30 rounded-lg p-4 mb-6 text-left">
-                                <p className="text-sm font-semibold mb-2">Contract Details:</p>
-                                <div className="space-y-1 text-xs">
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Address:</span>
-                                        <code className="font-mono">{contract.contractAddress}</code>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Network:</span>
-                                        <span>{contract.network} (Chain ID: {contract.chainId})</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Status:</span>
-                                        <Badge variant="outline" className="text-amber-500">Pending Deployment</Badge>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex gap-3 justify-center">
-                                <Button variant="outline" onClick={() => window.location.href = '/oracle'}>
-                                    View All Feeds
-                                </Button>
-                                <Button onClick={() => window.location.href = '/docs'}>
-                                    View Documentation
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </main>
-            </div>
-        )
-    }
+    // Note: With live data, we might want to check if price is 0 or undefined to show this, 
+    // but for now we'll rely on the contract existence check.
 
     // Filter agents by this memecoin
     const feedAgents = Object.values(allAgentsData).filter(agent => agent.memecoin === symbol)
@@ -126,7 +96,7 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
         setTimeout(() => setCopied(false), 2000)
     }
 
-    const isLive = new Date().getTime() - new Date(feedStats.lastUpdate).getTime() < 10 * 60 * 1000
+    const isLive = updatedAt ? (new Date().getTime() / 1000 - updatedAt) < 10 * 60 : false
 
     return (
         <div className="min-h-screen bg-background/80 backdrop-blur-sm">
@@ -162,7 +132,7 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
                                         </div>
                                         <p className="text-muted-foreground">{getMemecoinName(symbol)} Social Pulse Feed</p>
                                         <p className="text-sm text-muted-foreground mt-1">
-                                            {feedStats.updatesToday} updates today • Last update: {getTimeAgo(feedStats.lastUpdate)}
+                                            {isStatsLoading ? '...' : dailyUpdates} updates today • Last update: {isPriceLoading ? '...' : getTimeAgo(new Date(updatedAt ? updatedAt * 1000 : Date.now()).toISOString())}
                                         </p>
                                     </div>
                                 </div>
@@ -228,7 +198,7 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
                                 <h3 className="text-sm font-semibold text-blue-500 mb-1">How This Oracle Works</h3>
                                 <p className="text-xs text-muted-foreground">
                                     Prices update from <strong>volume-weighted averages</strong> of live perp trading on Orderly Finance.
-                                    {feedStats.totalAgents} active agents + manual traders contribute.
+                                    {isStatsLoading ? '...' : activeAgents} active agents + manual traders contribute.
                                     Updates recorded on MemeCore (Chain {contract.chainId}).
                                 </p>
                             </div>
@@ -243,7 +213,9 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
                                     <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
                                         <Users className="h-6 w-6 text-primary" />
                                     </div>
-                                    <p className="text-3xl font-bold mb-1">{feedStats.totalAgents}</p>
+                                    <p className="text-3xl font-bold mb-1">
+                                        {isStatsLoading ? <span className="animate-pulse">...</span> : activeAgents}
+                                    </p>
                                     <p className="text-xs text-muted-foreground">Active Agents</p>
                                 </div>
                             </CardContent>
@@ -255,7 +227,9 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
                                     <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center mb-3">
                                         <Zap className="h-6 w-6 text-accent" />
                                     </div>
-                                    <p className="text-3xl font-bold mb-1">{feedStats.updatesToday}</p>
+                                    <p className="text-3xl font-bold mb-1">
+                                        {isStatsLoading ? <span className="animate-pulse">...</span> : dailyUpdates}
+                                    </p>
                                     <p className="text-xs text-muted-foreground">Updates Today</p>
                                 </div>
                             </CardContent>
@@ -267,7 +241,7 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
                                     <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center mb-3">
                                         <Target className="h-6 w-6 text-green-500" />
                                     </div>
-                                    <p className="text-3xl font-bold mb-1">{feedStats.averageAccuracy}%</p>
+                                    <p className="text-3xl font-bold mb-1">{feedStats?.averageAccuracy || 0}%</p>
                                     <p className="text-xs text-muted-foreground">Avg Accuracy</p>
                                 </div>
                             </CardContent>
@@ -279,7 +253,15 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
                                     <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mb-3">
                                         <TrendingUp className="h-6 w-6 text-destructive" />
                                     </div>
-                                    <p className="text-3xl font-bold mb-1">{feedStats.currentPulse}/100</p>
+                                    <p className="text-3xl font-bold mb-1">
+                                        {isPriceLoading ? (
+                                            <span className="animate-pulse">...</span>
+                                        ) : hasPriceData && price !== null ? (
+                                            `${price.toFixed(2)}/100`
+                                        ) : (
+                                            '-'
+                                        )}
+                                    </p>
                                     <p className="text-xs text-muted-foreground">Current Pulse</p>
                                 </div>
                             </CardContent>
@@ -292,9 +274,9 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
                         <div className="lg:col-span-2 space-y-4">
                             <FeedAnalyticsCharts
                                 symbol={symbol}
-                                currentPulse={feedStats.currentPulse}
-                                averageAccuracy={feedStats.averageAccuracy}
-                                updatesToday={feedStats.updatesToday}
+                                currentPulse={price ?? 0}
+                                averageAccuracy={feedStats?.averageAccuracy || 0}
+                                updatesToday={dailyUpdates}
                             />
                         </div>
 

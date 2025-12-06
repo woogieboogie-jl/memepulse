@@ -44,10 +44,10 @@ export default function MyAgentsPage() {
       <main className="container mx-auto px-4 py-4">
         <div className="w-full max-w-6xl mx-auto">
           <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold font-pixel">My Agents</h1>
+            <div className="mb-4">
+              <h1 className="text-3xl font-bold font-pixel">Command Center</h1>
               <p className="text-sm text-muted-foreground">
-                Manage your AI trading agents and track performance
+                Manage your deployed agents and claim mining rewards
               </p>
             </div>
             <Button asChild>
@@ -82,6 +82,7 @@ export default function MyAgentsPage() {
                 <AgentCard
                   key={agent.id}
                   {...agent}
+                  address={agent.address}
                 />
               ))}
             </div>
