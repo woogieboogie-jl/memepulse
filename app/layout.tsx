@@ -40,7 +40,7 @@ export const metadata: Metadata = {
 }
 
 import { Providers } from '@/components/providers'
-import { GlobalTickerNew } from '@/components/global-ticker-new'
+import { GlobalTicker } from '@/components/global-ticker'
 import { Footer } from '@/components/footer'
 
 export default function RootLayout({
@@ -98,7 +98,7 @@ export default function RootLayout({
             enableSystem={false}
             disableTransitionOnChange
           >
-            <GlobalTickerNew />
+            <GlobalTicker />
             <div className="flex flex-col min-h-screen font-mono">
               <div className="flex-1">{children}</div>
               <Footer />

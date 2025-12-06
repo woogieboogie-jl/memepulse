@@ -1,10 +1,5 @@
 'use client'
 
-// Debug marker to confirm bundle load/hydration
-if (typeof window !== 'undefined') {
-  console.info('[Ticker module NEW] loaded in browser')
-}
-
 import { useEffect, useMemo, useState } from 'react'
 import { CONTRACTS } from '@/lib/contracts'
 import { usePriceHistoryStore } from '@/lib/store/price-history-store'
@@ -32,10 +27,7 @@ async function fetchLatestRoundData(feed: string) {
     id: 1,
     method: 'eth_call',
     params: [
-      {
-        to: feed,
-        data: '0xfeaf968c', // latestRoundData()
-      },
+      { to: feed, data: '0xfeaf968c' }, // latestRoundData()
       'latest',
     ],
   }
@@ -90,14 +82,11 @@ function useTickerPrice(symbol: keyof typeof CONTRACTS.PRICE_FEEDS) {
             recordPrice(symbol, price)
           }
           setState({ price, hasData, loading: false, error: undefined })
-          if (process.env.NODE_ENV === 'development') {
-            console.info('[Ticker NEW] ok', symbol, { price, hasData })
-          }
         }
       } catch (e) {
         const message = (e as Error).message || String(e)
         if (mounted) setState({ price: null, hasData: false, loading: false, error: message })
-        console.error('[Ticker NEW RPC]', symbol, message)
+        console.error('[Ticker RPC]', symbol, message)
       }
     }
 
@@ -122,12 +111,10 @@ function TickerItem({ symbol }: { symbol: keyof typeof CONTRACTS.PRICE_FEEDS }) 
 
   const hasChange = changePercent24h !== null && changePercent24h !== undefined
   const isUp = hasChange ? changePercent24h >= 0 : false
-  const statusLabel = loading ? 'loading' : error ? 'err' : hasData ? 'ok' : 'nodata'
 
   return (
     <div className="ticker-item inline-flex items-center gap-2 px-4">
       <span className="font-bold text-primary">{symbol}</span>
-      <span className="text-[10px] text-muted-foreground uppercase">{statusLabel}</span>
       <span className="text-foreground font-mono">
         {loading ? (
           <span className="animate-pulse">...</span>
@@ -170,23 +157,11 @@ function TickerItem({ symbol }: { symbol: keyof typeof CONTRACTS.PRICE_FEEDS }) 
   )
 }
 
-export function GlobalTickerNew() {
+export function GlobalTicker() {
   const displaySymbols = [...SUPPORTED_SYMBOLS, ...SUPPORTED_SYMBOLS]
 
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.info('[Ticker NEW mount] rendering', displaySymbols.slice(0, 7))
-    }
-  }, [displaySymbols])
-
   return (
-    <div
-      className="w-full bg-card border-b border-border overflow-hidden"
-      data-ticker-debug="mounted-new"
-    >
-      <div className="px-4 py-1 text-[10px] uppercase tracking-wide text-red-400 bg-black/60">
-        DEBUG: ticker NEW bundle
-      </div>
+    <div className="w-full bg-card border-b border-border overflow-hidden">
       <div className="ticker-wrapper">
         <div className="ticker-content">
           {displaySymbols.map((symbol, index) => (
