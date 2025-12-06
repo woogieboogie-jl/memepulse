@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { PulseCard, PulseCardProps } from '@/components/pulse-card'
+import { PulseCard } from '@/components/pulse-card'
 import { TradingEventFeed } from '@/components/trading-event-feed'
 import { Input } from '@/components/ui/input'
 import { Search, Filter } from 'lucide-react'
@@ -12,102 +12,24 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import { 
+    getSupportedMemecoins, 
+    getMemecoinName,
+    getMemecoinEmoji 
+} from '@/lib/contracts'
 
-// Mock data for memecoin oracle feed
-const MEMECOIN_ORACLE_DATA: PulseCardProps[] = [
-    {
-        memecoin: 'Dogecoin',
-        symbol: 'DOGE',
-        currentPrice: 0.085,
-        priceChange24h: 8.4,
-        socialScore: 78,
-        miningAPY: 45,
-        volume24h: 125000,
-        lastProofTxHash: '0x1234567890abcdef1234567890abcdef12345678',
-    },
-    {
-        memecoin: 'Pepe',
-        symbol: 'PEPE',
-        currentPrice: 0.000012,
-        priceChange24h: -3.1,
-        socialScore: 62,
-        miningAPY: 32,
-        volume24h: 89000,
-        lastProofTxHash: '0xabcdef1234567890abcdef1234567890abcdef12',
-    },
-    {
-        memecoin: 'Floki Inu',
-        symbol: 'FLOKI',
-        currentPrice: 0.00016,
-        priceChange24h: 12.3,
-        socialScore: 85,
-        miningAPY: 52,
-        volume24h: 156000,
-        lastProofTxHash: '0xfedcba0987654321fedcba0987654321fedcba09',
-    },
-    {
-        memecoin: 'Shiba Inu',
-        symbol: 'SHIB',
-        currentPrice: 0.0000078,
-        priceChange24h: 1.9,
-        socialScore: 45,
-        miningAPY: 18,
-        volume24h: 67000,
-    },
-    {
-        memecoin: 'dogwifhat',
-        symbol: 'WIF',
-        currentPrice: 0.42,
-        priceChange24h: -2.4,
-        socialScore: 71,
-        miningAPY: 38,
-        volume24h: 98000,
-        lastProofTxHash: '0x9876543210fedcba9876543210fedcba98765432',
-    },
-    {
-        memecoin: 'Bonk',
-        symbol: 'BONK',
-        currentPrice: 0.0000035,
-        priceChange24h: 5.6,
-        socialScore: 73,
-        miningAPY: 41,
-        volume24h: 112000,
-        lastProofTxHash: '0x1111222233334444555566667777888899990000',
-    },
-    {
-        memecoin: 'Bitcoin',
-        symbol: 'BTC',
-        currentPrice: 43250,
-        priceChange24h: 2.3,
-        socialScore: 92,
-        miningAPY: 28,
-        volume24h: 580000,
-        lastProofTxHash: '0xbtc1234567890abcdefbtc1234567890abcdef',
-    },
-]
+// Build feed list from configured price feeds
+const MEMECOIN_FEEDS = getSupportedMemecoins().map(symbol => ({
+    memecoin: getMemecoinName(symbol),
+    symbol: symbol,
+}))
 
 export function OracleFeed() {
     const [searchQuery, setSearchQuery] = useState('')
     const [sortBy, setSortBy] = useState('social')
 
-    // Sort memecoins
-    const sortedCoins = [...MEMECOIN_ORACLE_DATA].sort((a, b) => {
-        switch (sortBy) {
-            case 'social':
-                return b.socialScore - a.socialScore
-            case 'apy':
-                return b.miningAPY - a.miningAPY
-            case 'price':
-                return b.priceChange24h - a.priceChange24h
-            case 'volume':
-                return b.volume24h - a.volume24h
-            default:
-                return 0
-        }
-    })
-
     // Filter by search
-    const filteredCoins = sortedCoins.filter(
+    const filteredCoins = MEMECOIN_FEEDS.filter(
         (coin) =>
             coin.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
             coin.memecoin.toLowerCase().includes(searchQuery.toLowerCase())
@@ -160,7 +82,8 @@ export function OracleFeed() {
                         filteredCoins.map((coin) => (
                             <PulseCard
                                 key={coin.symbol}
-                                {...coin}
+                                symbol={coin.symbol}
+                                memecoin={coin.memecoin}
                             />
                         ))
                     ) : (

@@ -316,3 +316,190 @@ export function useEpochTotalVolume(epoch?: number) {
         isLoading
     }
 }
+
+// ============================================
+// NEW HOOKS - Contract Data Coverage
+// ============================================
+
+/**
+ * Checks if an agent is registered for a specific feed.
+ */
+export function useIsAgentRegistered(agentAddress?: string, feedSymbol?: string) {
+    const { data, isError, isLoading } = useQuery({
+        queryKey: ['isAgentRegistered', agentAddress, feedSymbol],
+        queryFn: async () => {
+            if (!agentAddress || !feedSymbol) return false
+            try {
+                return await publicClient.readContract({
+                    address: CONTRACTS.AGENT_REGISTRY as Address,
+                    abi: ABIS.AGENT_REGISTRY,
+                    functionName: 'isRegistered',
+                    args: [agentAddress as Address, feedSymbol]
+                }) as boolean
+            } catch {
+                return false
+            }
+        },
+        enabled: !!agentAddress && !!feedSymbol,
+    })
+
+    return {
+        isRegistered: data ?? false,
+        isError,
+        isLoading
+    }
+}
+
+/**
+ * Fetches total update count for an agent from AgentRegistry.
+ */
+export function useAgentUpdateCount(agentAddress?: string) {
+    const { data, isError, isLoading } = useQuery({
+        queryKey: ['agentUpdateCount', agentAddress],
+        queryFn: async () => {
+            if (!agentAddress) return 0n
+            try {
+                return await publicClient.readContract({
+                    address: CONTRACTS.AGENT_REGISTRY as Address,
+                    abi: ABIS.AGENT_REGISTRY,
+                    functionName: 'updateCount',
+                    args: [agentAddress as Address]
+                }) as bigint
+            } catch {
+                return 0n
+            }
+        },
+        enabled: !!agentAddress,
+        refetchInterval: 30000,
+    })
+
+    return {
+        updateCount: data ? Number(data) : 0,
+        isError,
+        isLoading
+    }
+}
+
+/**
+ * Fetches the last N oracle updates for a feed from Aggregator.
+ */
+export interface OracleUpdate {
+    price: number
+    volume: number
+    isLong: boolean
+    leverage: number
+    timestamp: number
+    orderlyTxHash: string
+    agent: string
+}
+
+export function useLastUpdates(feedSymbol: string, count: number = 10) {
+    const { data, isError, isLoading } = useQuery({
+        queryKey: ['lastUpdates', feedSymbol, count],
+        queryFn: async () => {
+            try {
+                const result = await publicClient.readContract({
+                    address: CONTRACTS.AGGREGATOR as Address,
+                    abi: ABIS.AGGREGATOR,
+                    functionName: 'getLastNUpdates',
+                    args: [feedSymbol, BigInt(count)]
+                }) as Array<{
+                    price: bigint
+                    volume: bigint
+                    isLong: boolean
+                    leverage: number
+                    timestamp: bigint
+                    orderlyTxHash: `0x${string}`
+                    agent: `0x${string}`
+                }>
+                
+                return result.map(update => ({
+                    price: Number(formatUnits(update.price, 8)),
+                    volume: Number(formatUnits(update.volume, 8)),
+                    isLong: update.isLong,
+                    leverage: update.leverage,
+                    timestamp: Number(update.timestamp),
+                    orderlyTxHash: update.orderlyTxHash,
+                    agent: update.agent
+                }))
+            } catch {
+                return []
+            }
+        },
+        enabled: !!feedSymbol,
+        refetchInterval: 30000,
+    })
+
+    return {
+        updates: data ?? [],
+        hasData: (data?.length ?? 0) > 0,
+        isError,
+        isLoading
+    }
+}
+
+/**
+ * Fetches reward multiplier for a specific feed from ProtocolConfig.
+ * Returns multiplier as a decimal (e.g., 1.2 for 1.2x).
+ */
+export function useFeedRewardMultiplier(feedSymbol: string) {
+    const { data, isError, isLoading } = useQuery({
+        queryKey: ['feedRewardMultiplier', feedSymbol],
+        queryFn: async () => {
+            try {
+                return await publicClient.readContract({
+                    address: CONTRACTS.PROTOCOL_CONFIG as Address,
+                    abi: ABIS.PROTOCOL_CONFIG,
+                    functionName: 'getFeedReward',
+                    args: [feedSymbol]
+                }) as bigint
+            } catch {
+                return 10000n // Default 1x
+            }
+        },
+        enabled: !!feedSymbol,
+    })
+
+    // Convert basis points (10000 = 1x) to decimal
+    const multiplier = data ? Number(data) / 10000 : 1
+
+    return {
+        multiplier,
+        multiplierDisplay: `${multiplier.toFixed(1)}x`,
+        isError,
+        isLoading
+    }
+}
+
+/**
+ * Fetches epoch duration from ProtocolConfig.
+ */
+export function useEpochDuration() {
+    const { data, isError, isLoading } = useQuery({
+        queryKey: ['epochDuration'],
+        queryFn: async () => {
+            try {
+                return await publicClient.readContract({
+                    address: CONTRACTS.PROTOCOL_CONFIG as Address,
+                    abi: ABIS.PROTOCOL_CONFIG,
+                    functionName: 'epochDuration'
+                }) as bigint
+            } catch {
+                return 86400n // Default 24h
+            }
+        },
+    })
+
+    const seconds = data ? Number(data) : 86400
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+
+    return {
+        seconds,
+        hours,
+        minutes,
+        display: hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`,
+        isError,
+        isLoading
+    }
+}

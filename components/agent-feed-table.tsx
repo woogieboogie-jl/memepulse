@@ -24,53 +24,173 @@ import { ArrowUpDown, TrendingUp, Target, Zap } from 'lucide-react'
 import { allAgentsData } from '@/lib/agents-data'
 import type { Agent } from '@/lib/agents-data'
 import { getTimeAgo } from '@/lib/feed-stats'
+import { useAgentUpdateCount, useCredibility, useMiningStats } from '@/hooks/use-contracts'
 
 interface AgentFeedTableProps {
     agents: Agent[]
     symbol: string
 }
 
-type SortField = 'updates' | 'accuracy' | 'lastActive' | 'mined'
+type SortField = 'updates' | 'credibility' | 'volume' | 'lastActive'
+
+// Individual row component that fetches real data
+function AgentRow({ 
+    agent, 
+    index, 
+    onViewAgent 
+}: { 
+    agent: Agent
+    index: number
+    onViewAgent: (id: string) => void 
+}) {
+    // Get agent address from allAgentsData (if available)
+    const agentData = allAgentsData[agent.id]
+    const agentAddress = agentData?.address
+
+    // Fetch real data from contracts
+    const { updateCount, isLoading: updatesLoading } = useAgentUpdateCount(agentAddress)
+    const { credibility, isLoading: credLoading } = useCredibility(agentAddress)
+    const { volume, isLoading: volumeLoading } = useMiningStats(agentAddress)
+
+    const isLoading = updatesLoading || credLoading || volumeLoading
+
+    return (
+        <TableRow className="cursor-pointer hover:bg-muted/50">
+            <TableCell className="font-medium">
+                {index + 1}
+                {index < 3 && (
+                    <span className="ml-1">
+                        {index === 0 && '🥇'}
+                        {index === 1 && '🥈'}
+                        {index === 2 && '🥉'}
+                    </span>
+                )}
+            </TableCell>
+            <TableCell>
+                <div className="flex items-center gap-2">
+                    <span className="text-xl">{agent.emoji}</span>
+                    <span className="font-semibold">{agent.name}</span>
+                </div>
+            </TableCell>
+            <TableCell>
+                {isLoading ? (
+                    <span className="text-muted-foreground animate-pulse">...</span>
+                ) : (
+                    updateCount || '-'
+                )}
+            </TableCell>
+            <TableCell>
+                {isLoading ? (
+                    <span className="text-muted-foreground animate-pulse">...</span>
+                ) : (
+                    <Badge variant={credibility >= 60 ? 'default' : 'secondary'}>
+                        {credibility > 0 ? `${credibility.toFixed(0)}%` : '-'}
+                    </Badge>
+                )}
+            </TableCell>
+            <TableCell className="font-semibold text-primary">
+                {isLoading ? (
+                    <span className="text-muted-foreground animate-pulse">...</span>
+                ) : (
+                    volume > 0 ? `$${volume.toLocaleString()}` : '-'
+                )}
+            </TableCell>
+            <TableCell className="text-sm text-muted-foreground">
+                {updateCount > 0 ? 'Active' : 'No data'}
+            </TableCell>
+            <TableCell className="text-right">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onViewAgent(agent.id)}
+                >
+                    View Agent
+                </Button>
+            </TableCell>
+        </TableRow>
+    )
+}
+
+// Mobile card component
+function AgentMobileCard({ 
+    agent, 
+    index, 
+    onViewAgent 
+}: { 
+    agent: Agent
+    index: number
+    onViewAgent: (id: string) => void 
+}) {
+    const agentData = allAgentsData[agent.id]
+    const agentAddress = agentData?.address
+
+    const { updateCount, isLoading: updatesLoading } = useAgentUpdateCount(agentAddress)
+    const { credibility, isLoading: credLoading } = useCredibility(agentAddress)
+    const { volume, isLoading: volumeLoading } = useMiningStats(agentAddress)
+
+    const isLoading = updatesLoading || credLoading || volumeLoading
+
+    return (
+        <div
+            className="p-4 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer"
+            onClick={() => onViewAgent(agent.id)}
+        >
+            <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <span className="font-bold text-muted-foreground">#{index + 1}</span>
+                    <span className="text-2xl">{agent.emoji}</span>
+                    <span className="font-semibold">{agent.name}</span>
+                </div>
+                {index < 3 && (
+                    <span className="text-xl">
+                        {index === 0 && '🥇'}
+                        {index === 1 && '🥈'}
+                        {index === 2 && '🥉'}
+                    </span>
+                )}
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                    <div className="text-muted-foreground">Updates</div>
+                    <div className="font-semibold">
+                        {isLoading ? '...' : (updateCount || '-')}
+                    </div>
+                </div>
+                <div>
+                    <div className="text-muted-foreground">Credibility</div>
+                    {isLoading ? (
+                        <span className="text-muted-foreground">...</span>
+                    ) : (
+                        <Badge variant={credibility >= 60 ? 'default' : 'secondary'}>
+                            {credibility > 0 ? `${credibility.toFixed(0)}%` : '-'}
+                        </Badge>
+                    )}
+                </div>
+                <div>
+                    <div className="text-muted-foreground">Volume</div>
+                    <div className="font-semibold text-primary">
+                        {isLoading ? '...' : (volume > 0 ? `$${volume.toLocaleString()}` : '-')}
+                    </div>
+                </div>
+                <div>
+                    <div className="text-muted-foreground">Status</div>
+                    <div className="text-xs">
+                        {updateCount > 0 ? 'Active' : 'No data'}
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
 
 export function AgentFeedTable({ agents, symbol }: AgentFeedTableProps) {
     const router = useRouter()
     const [sortField, setSortField] = useState<SortField>('updates')
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
-    // Mock data for demonstration (in real app, this would come from agent oracleStats)
-    const getAgentStats = (agentId: string) => {
-        const hash = agentId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-        return {
-            updates: 50 + (hash % 300),
-            accuracy: 90 + (hash % 10),
-            lastActive: new Date(Date.now() - (hash % 60) * 60 * 1000).toISOString(),
-            mined: (hash % 100) + 50,
-        }
+    const handleViewAgent = (agentId: string) => {
+        router.push(`/agent/${agentId}`)
     }
-
-    // Sort agents
-    const sortedAgents = [...agents].sort((a, b) => {
-        const statsA = getAgentStats(a.id)
-        const statsB = getAgentStats(b.id)
-
-        let comparison = 0
-        switch (sortField) {
-            case 'updates':
-                comparison = statsB.updates - statsA.updates
-                break
-            case 'accuracy':
-                comparison = statsB.accuracy - statsA.accuracy
-                break
-            case 'lastActive':
-                comparison = new Date(statsB.lastActive).getTime() - new Date(statsA.lastActive).getTime()
-                break
-            case 'mined':
-                comparison = statsB.mined - statsA.mined
-                break
-        }
-
-        return sortDirection === 'desc' ? comparison : -comparison
-    })
 
     const toggleSort = (field: SortField) => {
         if (sortField === field) {
@@ -114,19 +234,19 @@ export function AgentFeedTable({ agents, symbol }: AgentFeedTableProps) {
                                     Updates
                                 </div>
                             </SelectItem>
-                            <SelectItem value="accuracy">
+                            <SelectItem value="credibility">
                                 <div className="flex items-center gap-2">
                                     <Target className="h-4 w-4" />
-                                    Accuracy
+                                    Credibility
                                 </div>
                             </SelectItem>
-                            <SelectItem value="mined">
+                            <SelectItem value="volume">
                                 <div className="flex items-center gap-2">
                                     <TrendingUp className="h-4 w-4" />
-                                    $M Mined
+                                    Volume
                                 </div>
                             </SelectItem>
-                            <SelectItem value="lastActive">Last Active</SelectItem>
+                            <SelectItem value="lastActive">Status</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -155,9 +275,9 @@ export function AgentFeedTable({ agents, symbol }: AgentFeedTableProps) {
                                         variant="ghost"
                                         size="sm"
                                         className="h-8"
-                                        onClick={() => toggleSort('accuracy')}
+                                        onClick={() => toggleSort('credibility')}
                                     >
-                                        Accuracy
+                                        Credibility
                                         <ArrowUpDown className="ml-2 h-3 w-3" />
                                     </Button>
                                 </TableHead>
@@ -166,114 +286,41 @@ export function AgentFeedTable({ agents, symbol }: AgentFeedTableProps) {
                                         variant="ghost"
                                         size="sm"
                                         className="h-8"
-                                        onClick={() => toggleSort('mined')}
+                                        onClick={() => toggleSort('volume')}
                                     >
-                                        $M Mined
+                                        Volume
                                         <ArrowUpDown className="ml-2 h-3 w-3" />
                                     </Button>
                                 </TableHead>
-                                <TableHead>Last Active</TableHead>
+                                <TableHead>Status</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {sortedAgents.map((agent, index) => {
-                                const stats = getAgentStats(agent.id)
-                                return (
-                                    <TableRow key={agent.id} className="cursor-pointer hover:bg-muted/50">
-                                        <TableCell className="font-medium">
-                                            {index + 1}
-                                            {index < 3 && (
-                                                <span className="ml-1">
-                                                    {index === 0 && '🥇'}
-                                                    {index === 1 && '🥈'}
-                                                    {index === 2 && '🥉'}
-                                                </span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xl">{agent.emoji}</span>
-                                                <span className="font-semibold">{agent.name}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>{stats.updates}</TableCell>
-                                        <TableCell>
-                                            <Badge variant={stats.accuracy >= 95 ? 'default' : 'secondary'}>
-                                                {stats.accuracy.toFixed(1)}%
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="font-semibold text-primary">
-                                            {stats.mined} $M
-                                        </TableCell>
-                                        <TableCell className="text-sm text-muted-foreground">
-                                            {getTimeAgo(stats.lastActive)}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => router.push(`/agent/${agent.id}`)}
-                                            >
-                                                View Agent
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                )
-                            })}
+                            {agents.map((agent, index) => (
+                                <AgentRow
+                                    key={agent.id}
+                                    agent={agent}
+                                    index={index}
+                                    onViewAgent={handleViewAgent}
+                                />
+                            ))}
                         </TableBody>
                     </Table>
                 </div>
 
                 {/* Mobile Cards */}
                 <div className="md:hidden space-y-3">
-                    {sortedAgents.map((agent, index) => {
-                        const stats = getAgentStats(agent.id)
-                        return (
-                            <div
-                                key={agent.id}
-                                className="p-4 rounded-lg border bg-card hover:bg-muted/50 cursor-pointer"
-                                onClick={() => router.push(`/agent/${agent.id}`)}
-                            >
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-bold text-muted-foreground">#{index + 1}</span>
-                                        <span className="text-2xl">{agent.emoji}</span>
-                                        <span className="font-semibold">{agent.name}</span>
-                                    </div>
-                                    {index < 3 && (
-                                        <span className="text-xl">
-                                            {index === 0 && '🥇'}
-                                            {index === 1 && '🥈'}
-                                            {index === 2 && '🥉'}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="grid grid-cols-2 gap-3 text-sm">
-                                    <div>
-                                        <div className="text-muted-foreground">Updates</div>
-                                        <div className="font-semibold">{stats.updates}</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-muted-foreground">Accuracy</div>
-                                        <Badge variant={stats.accuracy >= 95 ? 'default' : 'secondary'}>
-                                            {stats.accuracy.toFixed(1)}%
-                                        </Badge>
-                                    </div>
-                                    <div>
-                                        <div className="text-muted-foreground">$M Mined</div>
-                                        <div className="font-semibold text-primary">{stats.mined} $M</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-muted-foreground">Last Active</div>
-                                        <div className="text-xs">{getTimeAgo(stats.lastActive)}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        )
-                    })}
+                    {agents.map((agent, index) => (
+                        <AgentMobileCard
+                            key={agent.id}
+                            agent={agent}
+                            index={index}
+                            onViewAgent={handleViewAgent}
+                        />
+                    ))}
                 </div>
             </CardContent>
-        </Card >
+        </Card>
     )
 }
