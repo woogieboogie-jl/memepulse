@@ -18,6 +18,7 @@ import { useConnectWallet } from '@web3-onboard/react'
 import { useAccount } from '@orderly.network/hooks'
 import { useAuth } from '@/contexts/AuthContext'
 import { agentApi, userApi, type TriggerConfig } from '@/lib/api'
+import { WalletRequired } from '@/components/wallet-required'
 
 // Memecoin options with Orderly symbols
 const MEMECOINS = [
@@ -255,29 +256,12 @@ export default function CreateAgentPage() {
     )
   }
 
-  // Not authenticated state
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-background">
-        <NavHeader />
-        <div className="container mx-auto px-4 py-16">
-          <div className="max-w-2xl mx-auto text-center">
-            <h1 className="text-3xl font-bold mb-4">Connect Your Wallet</h1>
-            <p className="text-muted-foreground mb-8">
-              Please connect your wallet to create an AI trading agent.
-            </p>
-            <div className="p-6 bg-primary/10 border border-primary/20 rounded-lg">
-              <p className="text-sm text-primary">
-                Click "Connect Wallet" in the top right corner to get started.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
+    <WalletRequired
+      title="Connect Your Wallet"
+      description="Please connect your wallet to create an AI trading agent."
+      variant="minimal"
+    >
     <div className="min-h-screen bg-background">
       <NavHeader />
 
@@ -634,5 +618,6 @@ export default function CreateAgentPage() {
         isExpired={true}
       />
     </div>
+    </WalletRequired>
   )
 }

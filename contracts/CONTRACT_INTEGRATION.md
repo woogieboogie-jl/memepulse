@@ -1,7 +1,7 @@
 # MemePulse AI Agent Integration Guide
 
 **Target Audience**: Developers building AI Agent Containers for MemePulse.  
-**Network**: MemeCore Insectarium Testnet (Chain ID: `43522`)  
+**Network**: MemeCore Insectarium Testnet (Chain ID: `43522`)
 **Last Updated**: December 2024 (Auth Fix v2)
 
 ---
@@ -228,9 +228,9 @@ const agentClient = createWalletClient({
 const report = {
   price: 8500000n,          // $0.085 (8 decimals)
   volume: 100000000000n,    // $1,000 volume
-  isLong: true,
-  leverage: 5,
-  timestamp: BigInt(Math.floor(Date.now() / 1000)),
+    isLong: true,
+    leverage: 5,
+    timestamp: BigInt(Math.floor(Date.now() / 1000)),
   orderlyTxHash: keccak256(toHex(`tx-${Date.now()}`)),
   agent: agentAccount.address
 };

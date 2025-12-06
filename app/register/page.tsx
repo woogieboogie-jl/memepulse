@@ -13,6 +13,7 @@ import { useConnectWallet } from '@web3-onboard/react'
 import { useAccount } from '@orderly.network/hooks'
 import { useAuth } from '@/contexts/AuthContext'
 import { userApi } from '@/lib/api'
+import { WalletRequired } from '@/components/wallet-required'
 
 // Orderly account status enum
 enum AccountStatus {
@@ -185,19 +186,14 @@ function RegisterContent() {
     // Show connect wallet message if not connected
     if (!isAuthenticated) {
         return (
-            <div className="min-h-screen bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-                <Card className="w-full max-w-md">
-                    <CardHeader>
-                        <CardTitle>Connect Wallet</CardTitle>
-                        <CardDescription>Please connect your wallet to register with Orderly</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground">
-                            Click "Connect Wallet" in the navigation to get started.
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
+            <WalletRequired
+                title="Connect Wallet"
+                description="Please connect your wallet to register with Orderly."
+                variant="card"
+                showHeader={false}
+            >
+                <div />
+            </WalletRequired>
         )
     }
 

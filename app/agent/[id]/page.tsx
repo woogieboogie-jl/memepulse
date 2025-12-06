@@ -52,6 +52,7 @@ import {
   useAccountInstance,
   usePositionStream,
 } from '@orderly.network/hooks'
+import { WalletRequired } from '@/components/wallet-required'
 
 // Memecoin emoji mapping
 const MEMECOIN_EMOJI: Record<string, string> = {
@@ -329,19 +330,13 @@ export default function AgentDetailPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-background/80 backdrop-blur-sm">
-        <NavHeader />
-        <main className="container mx-auto px-4 py-16">
-          <div className="max-w-2xl mx-auto text-center">
-            <h1 className="text-3xl font-bold mb-4 text-foreground font-pixel">
-              Connect Your Wallet
-            </h1>
-            <p className="text-muted-foreground mb-8">
-              Please connect your wallet to view agent details.
-            </p>
-          </div>
-        </main>
-      </div>
+      <WalletRequired
+        title="Connect Your Wallet"
+        description="Please connect your wallet to view agent details."
+        variant="card"
+      >
+        <div />
+      </WalletRequired>
     )
   }
 
@@ -385,22 +380,22 @@ export default function AgentDetailPage() {
       <main className="container mx-auto px-4 py-4">
         <div className="mx-auto max-w-6xl">
           {/* Back Button */}
-          <Button
-            variant="ghost"
+            <Button
+              variant="ghost"
             className="mb-4 pl-0 hover:bg-transparent hover:text-primary"
             onClick={() => router.push('/my-agents')}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
             Back to My Agents
-          </Button>
+            </Button>
 
           {/* Memecoin Hero Section */}
-          <Card className="mb-6 border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
-            <CardContent className="pt-6">
-              <div className="flex flex-col md:flex-row items-center gap-6">
-                <div className="flex-shrink-0">
+              <Card className="mb-6 border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col md:flex-row items-center gap-6">
+                    <div className="flex-shrink-0">
                   <div className="text-8xl leading-none">{emoji}</div>
-                </div>
+                    </div>
 
                 <div className="flex-1 w-full">
                   <div className="flex items-center gap-3 mb-2">
@@ -417,7 +412,7 @@ export default function AgentDetailPage() {
                             }`}
                           />
                           {isHealthy ? 'Running' : 'Not Responding'}
-                        </div>
+                      </div>
                       ) : agent.status === 'starting' ? (
                         <div className="flex items-center gap-1.5">
                           <Loader2 className="h-3 w-3 animate-spin" />
@@ -427,7 +422,7 @@ export default function AgentDetailPage() {
                         <div className="flex items-center gap-1.5">
                           <Loader2 className="h-3 w-3 animate-spin" />
                           Stopping
-                        </div>
+                      </div>
                       ) : (
                         'Stopped'
                       )}
@@ -499,9 +494,9 @@ export default function AgentDetailPage() {
                     </>
                   )}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+              </CardContent>
+            </Card>
 
           {/* Stats Grid */}
           <div className="grid gap-4 mb-6 md:grid-cols-3">
@@ -550,7 +545,7 @@ export default function AgentDetailPage() {
                       <ArrowUpRight className="h-3 w-3 mr-1" />
                       Withdraw
                     </Button>
-                  </div>
+                </div>
                 )}
               </CardContent>
             </Card>
@@ -611,11 +606,11 @@ export default function AgentDetailPage() {
                           return (
                             <TableRow key={position.symbol}>
                               <TableCell className="font-medium">{position.symbol}</TableCell>
-                              <TableCell>
+                            <TableCell>
                                 <Badge variant={isLong ? 'default' : 'destructive'}>
                                   {isLong ? 'Long' : 'Short'}
-                                </Badge>
-                              </TableCell>
+                              </Badge>
+                            </TableCell>
                               <TableCell className="text-right">
                                 {Math.abs(position.position_qty).toFixed(4)}
                               </TableCell>
@@ -624,14 +619,14 @@ export default function AgentDetailPage() {
                               </TableCell>
                               <TableCell className="text-right">
                                 ${position.mark_price?.toFixed(2) || '-'}
-                              </TableCell>
-                              <TableCell className="text-right">
+                            </TableCell>
+                            <TableCell className="text-right">
                                 <span className={pnl >= 0 ? 'text-accent' : 'text-destructive'}>
                                   ${pnl.toFixed(2)} ({pnl >= 0 ? '+' : ''}
                                   {pnlPercent}%)
                                 </span>
-                              </TableCell>
-                            </TableRow>
+                            </TableCell>
+                          </TableRow>
                           )
                         })
                       ) : (
@@ -670,7 +665,7 @@ export default function AgentDetailPage() {
                 Funds are transferred internally within Orderly Network. Each agent has its own
                 isolated sub account.
               </p>
-            </div>
+                </div>
 
             <div className="space-y-2">
               <Label htmlFor="fund-amount">Amount (USDC)</Label>
@@ -686,8 +681,8 @@ export default function AgentDetailPage() {
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Main Account Available</span>
                 <span className="font-medium">${accountAvailable.toFixed(2)} USDC</span>
-              </div>
-            </div>
+                  </div>
+                </div>
 
             <div className="flex gap-3">
               <Button
@@ -785,7 +780,7 @@ export default function AgentDetailPage() {
                 )}
               </Button>
             </div>
-          </div>
+        </div>
         </DialogContent>
       </Dialog>
 
