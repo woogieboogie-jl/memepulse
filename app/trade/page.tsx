@@ -18,10 +18,13 @@ import { initializeMockData, getPositions, getOrders, getTradeHistory, updatePos
 import { KeyRenewalModal } from '@/components/modals/key-renewal-modal'
 import { PulseMonitor } from '@/components/pulse-monitor'
 import { OracleMiningBanner } from '@/components/oracle-mining-banner'
+import { WalletRequired } from '@/components/wallet-required'
+import { useAuth } from '@/contexts/AuthContext'
 
 
 export default function TradePage() {
   const router = useRouter()
+  const { isAuthenticated } = useAuth()
   const [selectedAsset, setSelectedAsset] = useState('DOGE-PERP')
   const [mounted, setMounted] = useState(false)
   const [isMarketListVisible, setIsMarketListVisible] = useState(true)
@@ -49,8 +52,10 @@ export default function TradePage() {
   const ordersPerPage = 5
   const [showRenewalModal, setShowRenewalModal] = useState(false)
 
-  // Protect page - require valid trading key
+  // Protect page - require valid trading key (only run when authenticated)
   useEffect(() => {
+    if (!isAuthenticated) return // Don't check until authenticated
+    
     const isRegistered = localStorage.getItem('orderly_registered') === 'true'
     const isKeyExpired = localStorage.getItem('orderly_key_expired') === 'true'
 
@@ -62,7 +67,7 @@ export default function TradePage() {
     if (!isRegistered) {
       router.push('/register')
     }
-  }, [router])
+  }, [router, isAuthenticated])
 
   const handleRenewalSuccess = () => {
     setShowRenewalModal(false)
@@ -107,6 +112,11 @@ export default function TradePage() {
   }
 
   return (
+    <WalletRequired
+      title="Connect Your Wallet"
+      description="Please connect your wallet to access Manual Trading mode."
+      variant="minimal"
+    >
     <div className="min-h-screen bg-background">
       <NavHeader />
 
@@ -792,5 +802,6 @@ export default function TradePage() {
         isExpired={true}
       />
     </div>
+    </WalletRequired>
   )
 }
