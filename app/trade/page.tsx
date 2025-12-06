@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { TrendingUp, TrendingDown, BarChart3, Activity, DollarSign } from 'lucide-react'
+import { TrendingUp, TrendingDown, BarChart3, DollarSign } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { MarketList } from '@/components/market-list'
@@ -17,7 +17,7 @@ import { TradeFeed } from '@/components/trade-feed'
 import { initializeMockData, getPositions, getOrders, getTradeHistory, updatePositionsPnL, type Position, type Order } from '@/lib/trading-data'
 import { KeyRenewalModal } from '@/components/modals/key-renewal-modal'
 import { PulseMonitor } from '@/components/pulse-monitor'
-import { PoMGauge } from '@/components/pom-gauge'
+import { OracleMiningBanner } from '@/components/oracle-mining-banner'
 
 
 export default function TradePage() {
@@ -129,26 +129,10 @@ export default function TradePage() {
               </div>
             </div>
 
-            {/* Oracle Contribution Banner */}
-            <div className="mt-4 bg-primary/10 border border-primary/20 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Activity className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                <div>
-                  <h3 className="text-sm font-semibold text-primary mb-1">Your Trades Power MemeCore Oracles</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Every trade contributes to volume-weighted price feeds on MemeCore.
-                    Earn rewards from foundation subsidies while trading.
-                  </p>
-                </div>
-              </div>
+            {/* Oracle + Mining Banner (Consolidated) */}
+            <div className="mt-4">
+              <OracleMiningBanner />
             </div>
-          </div>
-        </div>
-
-        {/* PoM Gauge - NEW! */}
-        <div className="container mx-auto px-2 sm:px-4 pb-3">
-          <div className="max-w-6xl mx-auto">
-            <PoMGauge />
           </div>
         </div>
 
