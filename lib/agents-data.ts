@@ -584,11 +584,49 @@ export function getAgentById(id: string): AgentDetailData | undefined {
   return allAgentsData[id]
 }
 
-// Fallback: allow lookup by memecoin symbol to support seed agents without mocks
+// Fallback: allow lookup by memecoin symbol or compound ID to support on-chain agents
+// Compound ID format: {SYMBOL}-{ADDRESS}-{INDEX} e.g., DOGE-0x95ed40013Cb3990013Af947a635D1A3E31057426-0
 export function getAgentBySlug(idOrSymbol: string): AgentDetailData | undefined {
+  // Try direct lookup first (for mock agents like '1', '2', 'kol-1')
   const direct = getAgentById(idOrSymbol)
   if (direct) return direct
 
+  // Try parsing as compound ID: SYMBOL-ADDRESS-INDEX
+  const parts = idOrSymbol.split('-')
+  if (parts.length >= 3 && parts[1].startsWith('0x')) {
+    // Compound ID format: SYMBOL-ADDRESS-INDEX
+    const symbol = parts[0].toUpperCase()
+    const address = parts[1] as `0x${string}`
+    const index = parseInt(parts[2], 10)
+    
+    const supported = getSupportedMemecoins()
+    if (!supported.includes(symbol)) return undefined
+
+    return {
+      id: idOrSymbol,
+      address,
+      name: `${symbol} Agent #${index + 1}`,
+      creator: address,
+      strategy: 'On-chain oracle agent',
+      funded: 0,
+      pnl: 0,
+      memecoin: symbol,
+      socialScore: 0,
+      mTokensMined: 0,
+      oracleContributions: 0,
+      winRate: 0,
+      sharpeRatio: 0,
+      triggers: [],
+      contexts: [],
+      performanceData: [],
+      positions: [],
+      completedTrades: [],
+      transactions: [],
+      reasoningLog: [],
+    }
+  }
+
+  // Fallback: simple symbol lookup (e.g., "DOGE")
   const symbol = idOrSymbol.toUpperCase()
   const supported = getSupportedMemecoins()
   if (!supported.includes(symbol)) return undefined
