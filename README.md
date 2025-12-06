@@ -12,6 +12,7 @@ MemePulse enables users to deploy AI trading agents that execute memecoin perpet
 - [Problem Statement](#problem-statement)
 - [Solution](#solution)
 - [Architecture](#architecture)
+- [Core Flow](#core-flow)
 - [Smart Contracts](#smart-contracts)
 - [Frontend Pages](#frontend-pages)
 - [Tech Stack](#tech-stack)
@@ -20,6 +21,7 @@ MemePulse enables users to deploy AI trading agents that execute memecoin perpet
 - [Testing](#testing)
 - [Contract Addresses](#contract-addresses)
 - [API Reference](#api-reference)
+- [Roadmap](#roadmap)
 
 ---
 
@@ -53,11 +55,17 @@ The platform transforms speculative trading activity into valuable blockchain in
 
 **The Pulse Loop**: A four-step cycle that transforms trading into oracle infrastructure.
 
-```
-Listen (Sensing)     ->  AI monitors social signals and market data
-Act (Liquidity)      ->  Execute perp trades on Orderly Network
-Prove (Oracle)       ->  Submit trade data to MemeCore oracle contracts
-Reward (Mining)      ->  Earn M tokens based on volume and credibility
+```mermaid
+flowchart LR
+    A[Listen] --> B[Act]
+    B --> C[Prove]
+    C --> D[Reward]
+    D --> A
+    
+    A -.- A1[AI monitors social signals]
+    B -.- B1[Execute perp trades on Orderly]
+    C -.- C1[Submit trade data to MemeCore]
+    D -.- D1[Earn M tokens via PoM Mining]
 ```
 
 ### Value Proposition
@@ -72,35 +80,119 @@ Reward (Mining)      ->  Earn M tokens based on volume and credibility
 
 ## Architecture
 
-### System Components
+### System Overview
 
+```mermaid
+graph TB
+    subgraph User["User (Memecoin Supporter)"]
+        Frontend[Frontend App]
+    end
+    
+    subgraph Agent["AI Agent Container"]
+        Monitor[Social Monitor]
+        Executor[Trade Executor]
+        Proof[Proof Generator]
+    end
+    
+    subgraph Orderly["Orderly Network"]
+        PerpDEX[Perpetual DEX]
+        OrderAPI[Order API]
+    end
+    
+    subgraph MemeCore["MemeCore L1 (Chain 43522)"]
+        Registry[AgentRegistry]
+        Aggregator[Aggregator]
+        Feed[PriceFeed x7]
+        Distributor[MTokenDistributor]
+        Config[ProtocolConfig]
+    end
+    
+    Frontend -->|1. Create Agent| Registry
+    Monitor -->|Social Signals| Executor
+    Executor -->|2. Execute Trade| PerpDEX
+    PerpDEX -->|Trade Result| Proof
+    Proof -->|3. Submit Update| Aggregator
+    Aggregator -->|Verify| Registry
+    Aggregator -->|Update Price| Feed
+    Aggregator -->|Record Volume| Distributor
+    Config -->|Reward Rates| Distributor
+    Distributor -->|4. Claim M Tokens| Frontend
 ```
-+------------------+       +-------------------+       +------------------+
-|   AI Agent       |       |   MemeCore L1     |       |   Orderly        |
-|   Container      |       |   (Chain: 43522)  |       |   Network        |
-+------------------+       +-------------------+       +------------------+
-|                  |       |                   |       |                  |
-| - Social Monitor |       | - AgentRegistry   |       | - Perp DEX       |
-| - Trade Executor |------>| - Aggregator      |<----->| - Order API      |
-| - Proof Generator|       | - PriceFeed (x7)  |       | - Trade History  |
-|                  |       | - MTokenDistrib.  |       |                  |
-+------------------+       +-------------------+       +------------------+
-        |                           ^
-        |                           |
-        v                           |
-+------------------+       +-------------------+
-|   Frontend       |       |   ProtocolConfig  |
-|   (Next.js)      |<----->|   (Parameters)    |
-+------------------+       +-------------------+
+
+### Contract Relationships
+
+```mermaid
+graph LR
+    subgraph Core
+        AR[AgentRegistry]
+        AG[Aggregator]
+        PF[PriceFeed]
+        MD[MTokenDistributor]
+        PC[ProtocolConfig]
+    end
+    
+    AR <-->|Verify Registration| AG
+    AR <-->|Get Credibility| MD
+    AG -->|Update VCWAP| PF
+    AG -->|Record Volume| MD
+    PC -->|Epoch Duration| MD
+    PC -->|Reward Multipliers| MD
+    PC -->|VCWAP Settings| AG
 ```
 
-### Data Flow
+---
 
-1. **Agent Registration**: Backend (registrar) registers agent address + feed symbol
-2. **Trading**: Agent executes trades on Orderly, receives tx hash as proof
-3. **Oracle Update**: Agent calls `Aggregator.submitUpdate()` with trade data
-4. **VCWAP Calculation**: Aggregator computes Volume-Credibility-Weighted Average Price
-5. **Reward Distribution**: MTokenDistributor tracks contributions per epoch
+## Core Flow
+
+The core user journey centers on memecoin supporters who want to contribute to the ecosystem:
+
+```mermaid
+sequenceDiagram
+    participant User as User (Supporter)
+    participant FE as Frontend
+    participant AR as AgentRegistry
+    participant Agent as AI Agent
+    participant Orderly as Orderly Network
+    participant AG as Aggregator
+    participant MD as MTokenDistributor
+
+    Note over User,MD: 1. Agent Registration
+    User->>FE: Create Agent for DOGE (supporter)
+    FE->>AR: registerAgent(agentAddr, "DOGE")
+    AR-->>FE: Agent registered with 50% initial credibility
+
+    Note over User,MD: 2. Trading and Oracle Updates
+    loop Continuous Trading
+        Agent->>Orderly: Execute perp trade
+        Orderly-->>Agent: Trade result + txHash
+        Agent->>AG: submitUpdate(price, volume, proof)
+        AG->>AR: Verify registration + recordUpdate()
+        AG->>AG: Calculate VCWAP
+        AG->>MD: recordContribution(agent, volume)
+    end
+
+    Note over User,MD: 3. Credibility Growth (ERC-8004)
+    AR->>AR: Credibility grows logarithmically per epoch
+    
+    Note over User,MD: 4. Reward Distribution
+    MD->>MD: End of epoch
+    User->>MD: claimRewards(epoch)
+    MD->>MD: Calculate: volume share x credibility
+    MD-->>User: M tokens transferred
+```
+
+### How It Works
+
+1. **Choose Your Memecoin**: Users select a memecoin they believe in (DOGE, PEPE, SHIB, etc.) and create an AI agent with trading strategies for that specific feed.
+
+2. **Agent Trades and Updates**: The agent executes perpetual trades on Orderly Network and submits trade data (price, volume, direction) to the Aggregator contract as oracle updates.
+
+3. **Credibility Accumulates**: Following ERC-8004 inspired reputation patterns, agent credibility grows logarithmically over epochs based on consistent, accurate contributions.
+
+4. **M Tokens Distributed**: At each epoch end, M tokens are distributed proportionally based on:
+   - Trading volume contributed
+   - Agent credibility score
+   - Feed-specific reward multipliers
 
 ---
 
@@ -112,7 +204,7 @@ All contracts deployed on MemeCore Insectarium Testnet (Chain ID: 43522).
 
 | Contract | Purpose |
 |----------|---------|
-| **AgentRegistry** | Manages agent registration per feed, tracks credibility scores with logarithmic growth |
+| **AgentRegistry** | Manages agent registration per feed, tracks credibility scores with logarithmic growth (ERC-8004 inspired) |
 | **Aggregator** | Receives trade reports, calculates VCWAP, updates price feeds |
 | **PriceFeed** | Chainlink AggregatorV3Interface compatible price storage (one per memecoin) |
 | **MTokenDistributor** | Epoch-based reward distribution, pull model for claims |
@@ -122,9 +214,17 @@ All contracts deployed on MemeCore Insectarium Testnet (Chain ID: 43522).
 
 ### Authentication Flow
 
-```
-AgentRegistry.registerAgent()   <-- Only owner or authorized registrars
-Aggregator.submitUpdate()       <-- Only the registered agent itself (msg.sender == agent)
+```mermaid
+flowchart TD
+    A[Registration Request] --> B{Is caller owner or registrar?}
+    B -->|Yes| C[AgentRegistry.registerAgent]
+    B -->|No| D[Reject]
+    
+    E[Oracle Update] --> F{Is msg.sender == agent?}
+    F -->|Yes| G{Is agent registered for feed?}
+    F -->|No| H[Reject]
+    G -->|Yes| I[Aggregator.submitUpdate]
+    G -->|No| H
 ```
 
 ### Supported Price Feeds
@@ -148,7 +248,7 @@ Aggregator.submitUpdate()       <-- Only the registered agent itself (msg.sender
 | `/` | Landing page with value proposition |
 | `/oracle` | Browse all memecoin pulse feeds with live prices |
 | `/feed/[symbol]` | Detailed view of a specific price feed |
-| `/create` | Deploy a new AI trading agent |
+| `/create` | Deploy a new AI trading agent for your favorite memecoin |
 | `/my-agents` | Command center for managing owned agents |
 | `/agent/[id]` | Individual agent dashboard with stats |
 | `/marketplace` | Browse and compare available agents |
@@ -357,6 +457,43 @@ const { credibility } = useCredibility(agentAddress);
 
 // Get mining stats for current epoch
 const { updates, volume } = useMiningStats(agentAddress);
+```
+
+---
+
+## Roadmap
+
+### Social Context Integration (Planned)
+
+> **Note**: Meme value consists of two components: **Price** and **Hype** (social virality).
+> 
+> The current implementation focuses on price oracle data derived from trading activity. In the next phase, we will integrate social context signals - trending memes, KOL mentions, community sentiment - into the protocol as a separate data layer.
+> 
+> This will enable MemeCore developers to build dApps that consume both:
+> - **Price Feeds**: Real-time memecoin prices (current)
+> - **Social Feeds**: Meme virality scores, trending topics, sentiment indices (planned)
+>
+> The dual-feed architecture will provide a complete picture of meme market dynamics for on-chain applications.
+
+```mermaid
+graph TB
+    subgraph Current["Current: Price Oracle"]
+        Trade[Trading Activity] --> Price[Price Feed]
+    end
+    
+    subgraph Planned["Planned: Social Oracle"]
+        Twitter[Twitter/X] --> Social[Social Feed]
+        AI[AI Bots] --> Social
+        Trends[Trending Topics] --> Social
+    end
+    
+    subgraph DApps["MemeCore DApps"]
+        Price --> App1[DeFi Protocols]
+        Price --> App2[Prediction Markets]
+        Social --> App2
+        Social --> App3[Meme Index Funds]
+        Price --> App3
+    end
 ```
 
 ---
