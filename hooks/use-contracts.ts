@@ -631,6 +631,24 @@ export function useAgentCountForFeed(feedSymbol: string) {
     }
 }
 
+// Indexed strings in Solidity events are hashed - we need to reverse lookup
+// keccak256(feedSymbol) => feedSymbol
+const FEED_SYMBOL_HASHES: Record<string, string> = {
+    '0x9a3f52b1b31ae58da40209f38379e78c3a0756495a0f585d0b3c84a9e9718f9d': 'DOGE',
+    '0x608e17bb6814e7eb8d564b13416322f3d8a2dc5e36dde75519945008d7848749': 'PEPE',
+    '0xefa585451ff82e7559b7e4aa3c7d26b394fd121301bbf6f1da4ef6d29210466e': 'SHIB',
+    '0x4d2685df44ed8d92cd381798ca9d3877ed9fca9a24cbfcf0e5985c253410b371': 'FLOKI',
+    '0xabad9a062c9f315a9feea094e0ec8d4620ba3e5953a36728cb12e20baddf0a07': 'WIF',
+    '0x33a9943bc13f82050177e083c742d665a37b94763b617af88e4f7d84f1d209ff': 'BONK',
+    '0xe98e2830be1a7e4156d656a7505e65d08c67660dc618072422e9c78053c261e9': 'BTC',
+}
+
+function decodeFeedSymbol(hash: string | undefined): string {
+    if (!hash) return 'UNKNOWN'
+    const normalized = hash.toLowerCase()
+    return FEED_SYMBOL_HASHES[normalized] || hash.slice(0, 8) + '...'
+}
+
 /**
  * Fetches recent UpdateSubmitted events from Aggregator contract.
  * Returns oracle update events for the live feed.
@@ -669,7 +687,8 @@ export function useOracleUpdateEvents(limit: number = 20) {
             return sortedLogs.map((log, index) => ({
                 id: `${log.transactionHash}-${log.logIndex}`,
                 agent: log.args.agent as string,
-                feedSymbol: log.args.feedSymbol as string,
+                // Indexed strings are hashed - decode back to symbol
+                feedSymbol: decodeFeedSymbol(log.args.feedSymbol as string),
                 price: log.args.price as bigint,
                 volume: log.args.volume as bigint,
                 timestamp: new Date(Number(log.args.timestamp) * 1000),
