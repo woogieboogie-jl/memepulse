@@ -145,9 +145,20 @@ Returns performance data for the dashboard chart.
 
 ## Notes
 
-- The API uses in-memory storage for the hackathon (resets on server restart)
-- For production, replace with Supabase/PostgreSQL
+- The API uses **Redis Cloud** for persistence (via Vercel integration)
+- Falls back to in-memory if `REDIS_URL` not configured
+- Set `REDIS_URL` in `.env.local` for local dev with persistence
 - Price conversion: Divide by 1e8 to get USD
 - Volume conversion: Divide by 1e18 to get USD
 - `pnlUsd` is the most important new field - it drives the performance chart
+
+## Environment Setup
+
+For persistence, add to `.env.local`:
+```
+REDIS_URL="redis://default:YOUR_PASSWORD@your-redis-host:PORT"
+```
+
+On Vercel, this is automatically configured via the Redis Cloud integration.
+See: https://redis.io/docs/latest/operate/rc/cloud-integrations/vercel/
 

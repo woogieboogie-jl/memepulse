@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server'
-import { kv } from '@vercel/kv'
+import { getRedis, isRedisConfigured } from '@/lib/redis'
 
 /**
- * Trade Recording API with Vercel KV Persistence
+ * Trade Recording API with Redis Cloud Persistence
  * 
- * Stores trades in Redis for persistence across deploys.
- * Falls back to in-memory for local development.
+ * Uses Redis Cloud (via Vercel integration) for persistence.
+ * Falls back to in-memory for local development without Redis.
+ * 
+ * Docs: https://redis.io/docs/latest/operate/rc/cloud-integrations/vercel/
  */
 
-// In-memory fallback for local dev (when KV not configured)
+// In-memory fallback for local dev (when Redis not configured)
 const localTradesStore: TradeRecord[] = []
 
 interface TradeRecord {
@@ -23,11 +25,6 @@ interface TradeRecord {
   orderlyTxHash: string
   pnlUsd: number
   createdAt: string
-}
-
-// Check if KV is configured
-const isKVConfigured = () => {
-  return process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN
 }
 
 // POST /api/trades - Record a new trade
@@ -77,15 +74,18 @@ export async function POST(req: Request) {
       createdAt: new Date().toISOString()
     }
 
-    // Store in KV or fallback to local
-    if (isKVConfigured()) {
+    // Try Redis first, fallback to local
+    const redis = await getRedis()
+    
+    if (redis) {
       // Use Redis list - push to front, keep last 10,000
-      await kv.lpush('trades', JSON.stringify(trade))
-      await kv.ltrim('trades', 0, 9999) // Keep max 10K trades
+      await redis.lPush('trades', JSON.stringify(trade))
+      await redis.lTrim('trades', 0, 9999)
       
       // Also index by agent for faster lookups
-      await kv.lpush(`trades:${trade.agent}`, JSON.stringify(trade))
-      await kv.ltrim(`trades:${trade.agent}`, 0, 999) // Keep last 1K per agent
+      const agentKey = `trades:${trade.agent}`
+      await redis.lPush(agentKey, JSON.stringify(trade))
+      await redis.lTrim(agentKey, 0, 999)
     } else {
       // Local fallback
       localTradesStore.unshift(trade)
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ 
       success: true, 
       tradeId: trade.id,
-      storage: isKVConfigured() ? 'kv' : 'memory'
+      storage: redis ? 'redis' : 'memory'
     })
 
   } catch (error) {
@@ -118,12 +118,13 @@ export async function GET(req: Request) {
 
   try {
     let trades: TradeRecord[] = []
+    const redis = await getRedis()
 
-    if (isKVConfigured()) {
-      // Fetch from KV
+    if (redis) {
+      // Fetch from Redis
       const key = agent ? `trades:${agent}` : 'trades'
-      const raw = await kv.lrange(key, 0, limit - 1)
-      trades = raw.map((item: any) => typeof item === 'string' ? JSON.parse(item) : item)
+      const raw = await redis.lRange(key, 0, limit - 1)
+      trades = raw.map((item: string) => JSON.parse(item))
     } else {
       // Local fallback
       trades = [...localTradesStore]
@@ -140,7 +141,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       trades: trades.slice(0, limit),
       total: trades.length,
-      storage: isKVConfigured() ? 'kv' : 'memory'
+      storage: redis ? 'redis' : 'memory'
     })
 
   } catch (error) {

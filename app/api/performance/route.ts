@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { kv } from '@vercel/kv'
+import { getRedis } from '@/lib/redis'
 
 /**
  * Agent Performance API
- * Reads from Vercel KV (or memory fallback) and aggregates for chart.
+ * Reads from Redis Cloud (or memory fallback) and aggregates for chart.
  */
 
 interface TradeRecord {
@@ -39,10 +39,6 @@ interface AgentPerformance {
   dataPoints: PerformancePoint[]
 }
 
-const isKVConfigured = () => {
-  return process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN
-}
-
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const agentFilter = searchParams.get('agent')?.toLowerCase()
@@ -50,12 +46,13 @@ export async function GET(req: Request) {
   const timeRange = searchParams.get('range') || '7d'
 
   try {
-    // Fetch trades
+    // Fetch trades from Redis or memory
     let trades: TradeRecord[] = []
+    const redis = await getRedis()
 
-    if (isKVConfigured()) {
-      const raw = await kv.lrange('trades', 0, 4999) // Last 5000 trades
-      trades = raw.map((item: any) => typeof item === 'string' ? JSON.parse(item) : item)
+    if (redis) {
+      const raw = await redis.lRange('trades', 0, 4999) // Last 5000 trades
+      trades = raw.map((item: string) => JSON.parse(item))
     } else {
       // Fetch from our own API (will use local memory)
       const tradesRes = await fetch(new URL('/api/trades?limit=5000', req.url).toString())
@@ -149,10 +146,10 @@ export async function GET(req: Request) {
     performances.sort((a, b) => b.totalPnl - a.totalPnl)
 
     return NextResponse.json({
-      performances: performances.slice(0, 10), // Top 10
+      performances: performances.slice(0, 10),
       hasData: performances.length > 0,
       totalAgents: performances.length,
-      storage: isKVConfigured() ? 'kv' : 'memory'
+      storage: redis ? 'redis' : 'memory'
     })
 
   } catch (error) {
