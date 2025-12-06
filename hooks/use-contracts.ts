@@ -441,18 +441,21 @@ export function useLastUpdates(feedSymbol: string, count: number = 10) {
 /**
  * Fetches reward multiplier for a specific feed from ProtocolConfig.
  * Returns multiplier as a decimal (e.g., 1.2 for 1.2x).
+ * Multiplier is in basis points: 10000 = 1x, 12000 = 1.2x
  */
 export function useFeedRewardMultiplier(feedSymbol: string) {
     const { data, isError, isLoading } = useQuery({
         queryKey: ['feedRewardMultiplier', feedSymbol],
         queryFn: async () => {
             try {
-                return await publicClient.readContract({
+                const result = await publicClient.readContract({
                     address: CONTRACTS.PROTOCOL_CONFIG as Address,
                     abi: ABIS.PROTOCOL_CONFIG,
-                    functionName: 'getFeedReward',
+                    functionName: 'feedRewardMultipliers',
                     args: [feedSymbol]
                 }) as bigint
+                // If no multiplier set, contract returns 0, default to 10000 (1x)
+                return result > 0n ? result : 10000n
             } catch {
                 return 10000n // Default 1x
             }
@@ -556,5 +559,63 @@ export function useAgentCountForFeed(feedSymbol: string) {
         count: data ? Number(data) : 0,
         isError,
         isLoading
+    }
+}
+
+/**
+ * Fetches recent UpdateSubmitted events from Aggregator contract.
+ * Returns oracle update events for the live feed.
+ */
+export function useOracleUpdateEvents(limit: number = 20) {
+    const { data, isError, isLoading, refetch } = useQuery({
+        queryKey: ['oracleUpdateEvents', limit],
+        queryFn: async () => {
+            // Fetch logs from the last ~1000 blocks (roughly last few hours)
+            const currentBlock = await publicClient.getBlockNumber()
+            const fromBlock = currentBlock > 1000n ? currentBlock - 1000n : 0n
+
+            const logs = await publicClient.getLogs({
+                address: CONTRACTS.AGGREGATOR as Address,
+                event: {
+                    type: 'event',
+                    name: 'UpdateSubmitted',
+                    inputs: [
+                        { type: 'address', name: 'agent', indexed: true },
+                        { type: 'string', name: 'feedSymbol', indexed: true },
+                        { type: 'uint256', name: 'price' },
+                        { type: 'uint256', name: 'volume' },
+                        { type: 'uint256', name: 'timestamp' },
+                        { type: 'bytes32', name: 'orderlyTxHash' },
+                    ],
+                },
+                fromBlock,
+                toBlock: 'latest',
+            })
+
+            // Sort by block number descending and limit
+            const sortedLogs = logs.sort((a, b) => 
+                Number(b.blockNumber) - Number(a.blockNumber)
+            ).slice(0, limit)
+
+            return sortedLogs.map((log, index) => ({
+                id: `${log.transactionHash}-${log.logIndex}`,
+                agent: log.args.agent as string,
+                feedSymbol: log.args.feedSymbol as string,
+                price: log.args.price as bigint,
+                volume: log.args.volume as bigint,
+                timestamp: new Date(Number(log.args.timestamp) * 1000),
+                txHash: log.transactionHash,
+                blockNumber: log.blockNumber,
+            }))
+        },
+        refetchInterval: 15000, // Refresh every 15s
+    })
+
+    return {
+        events: data || [],
+        hasEvents: (data?.length || 0) > 0,
+        isError,
+        isLoading,
+        refetch,
     }
 }

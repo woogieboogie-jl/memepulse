@@ -12,7 +12,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 
-import { useAggregatorStats } from '@/hooks/use-contracts'
+import { useAggregatorStats, useFeedRewardMultiplier } from '@/hooks/use-contracts'
 import { usePriceWithChange } from '@/hooks/use-price-with-change'
 import { CONTRACTS } from '@/lib/contracts'
 
@@ -22,7 +22,6 @@ export interface PulseCardProps {
     currentPrice?: number
     priceChange24h?: number
     socialScore?: number
-    miningAPY?: number
     volume24h?: number
     lastProofTxHash?: string
 }
@@ -49,7 +48,6 @@ export function PulseCard({
     currentPrice: initialPrice,
     priceChange24h: initialChange,
     socialScore: initialScore,
-    miningAPY = 0,
     volume24h: initialVolume,
 }: PulseCardProps) {
     const router = useRouter()
@@ -64,6 +62,7 @@ export function PulseCard({
         hasChangeData
     } = usePriceWithChange(symbol as keyof typeof CONTRACTS.PRICE_FEEDS)
     const { dailyUpdates, hasData: hasStatsData } = useAggregatorStats(symbol)
+    const { multiplier, isLoading: isMultiplierLoading } = useFeedRewardMultiplier(symbol)
 
     // Use live data or fallback to initial props, or show empty state
     const displayPrice = hasPriceData && livePrice !== null ? livePrice : initialPrice
@@ -88,9 +87,10 @@ export function PulseCard({
         return 'text-muted-foreground'
     }
 
-    const getMiningAPYColor = () => {
-        if (miningAPY >= 40) return 'bg-primary text-primary-foreground'
-        if (miningAPY >= 20) return 'bg-accent text-accent-foreground'
+    // Multiplier is already converted by the hook (e.g., 1.2 = 1.2x)
+    const getMiningMultiplierColor = () => {
+        if (multiplier >= 1.3) return 'bg-primary text-primary-foreground'
+        if (multiplier >= 1.1) return 'bg-accent text-accent-foreground'
         return 'bg-secondary text-secondary-foreground'
     }
 
@@ -122,8 +122,8 @@ export function PulseCard({
                                 <EmptyValue tooltip="Feed not activated yet" />
                             )}
                         </div>
-                        <div className={`text-xs ${displayChange !== undefined && displayChange >= 0 ? 'text-accent' : 'text-destructive'}`}>
-                            {displayChange !== undefined ? (
+                        <div className={`text-xs ${displayChange !== undefined && displayChange !== null && displayChange >= 0 ? 'text-accent' : 'text-destructive'}`}>
+                            {displayChange !== undefined && displayChange !== null ? (
                                 `${displayChange >= 0 ? '+' : ''}${displayChange.toFixed(2)}%`
                             ) : (
                                 <EmptyValue tooltip="Building price history..." />
@@ -162,10 +162,14 @@ export function PulseCard({
                     </div>
                 </div>
 
-                {/* Mining APY Badge */}
+                {/* Mining Reward Multiplier Badge */}
                 <div className="mb-3">
-                    <Badge className={`${getMiningAPYColor()} font-bold text-xs`}>
-                        ⛏️ Mining APY: {miningAPY > 0 ? `${miningAPY}%` : '-'}
+                    <Badge className={`${getMiningMultiplierColor()} font-bold text-xs`}>
+                        {isMultiplierLoading ? (
+                            <span className="animate-pulse">⛏️ Mining: ...</span>
+                        ) : (
+                            `⛏️ Mining: ${multiplier.toFixed(1)}x`
+                        )}
                     </Badge>
                 </div>
 

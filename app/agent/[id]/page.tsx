@@ -275,14 +275,6 @@ export default function AgentDetailPage() {
               </div>
 
               <div className="flex flex-col items-end gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded-full border border-border/50">
-                  <Zap className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Streaming Cost: <span className="text-foreground font-semibold">$0.0042/hr</span>
-                  </span>
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse ml-1" />
-                </div>
-
                 <div className="flex gap-2">
                   {agent.isOwned ? (
                     <>

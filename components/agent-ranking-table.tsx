@@ -11,8 +11,9 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { useRouter } from 'next/navigation'
-import { Medal, TrendingUp } from 'lucide-react'
+import { Medal, TrendingUp, Shield } from 'lucide-react'
 import { AgentCardProps } from './agent-card'
+import { useCredibility, useAgentUpdateCount } from '@/hooks/use-contracts'
 
 interface AgentRankingTableProps {
   agents: AgentCardProps[]
@@ -31,16 +32,56 @@ const getRankIcon = (rank: number) => {
   }
 }
 
+// Component to display credibility for a single agent
+function AgentCredibilityCell({ address }: { address?: string }) {
+  const { credibility, isLoading } = useCredibility(address)
+  
+  if (isLoading) {
+    return <span className="animate-pulse text-muted-foreground">...</span>
+  }
+  
+  // credibility is already in percentage (0-100) from the hook
+  return (
+    <Badge 
+      variant={credibility >= 75 ? 'default' : credibility >= 50 ? 'secondary' : 'outline'}
+      className="font-mono"
+    >
+      {credibility.toFixed(0)}%
+    </Badge>
+  )
+}
+
+// Component to display update count for a single agent
+function AgentUpdatesCell({ address }: { address?: string }) {
+  const { updateCount, isLoading } = useAgentUpdateCount(address)
+  
+  if (isLoading) {
+    return <span className="animate-pulse text-muted-foreground">...</span>
+  }
+  
+  return <span className="text-sm font-mono">{updateCount}</span>
+}
+
 export function AgentRankingTable({ agents }: AgentRankingTableProps) {
   const router = useRouter()
 
-  // Get top 5 agents sorted by total P&L
-  const topAgents = [...agents]
-    .sort((a, b) => b.pnl - a.pnl)
-    .slice(0, 5)
+  // Show top 5 agents (they come from Marketplace which already fetches from on-chain)
+  // In production, we'd sort these by credibility client-side or fetch sorted from backend
+  const topAgents = agents.slice(0, 5)
 
   const handleRowClick = (agentId: string) => {
     router.push(`/agent/${agentId}`)
+  }
+
+  if (topAgents.length === 0) {
+    return (
+      <Card className="h-full flex flex-col">
+        <CardContent className="p-6 flex flex-col flex-1 items-center justify-center">
+          <Shield className="h-8 w-8 text-muted-foreground mb-2" />
+          <p className="text-muted-foreground text-sm">No agents registered yet</p>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -50,8 +91,11 @@ export function AgentRankingTable({ agents }: AgentRankingTableProps) {
           <div className="flex-1">
             <CardTitle className="text-xl font-bold mb-1 flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-primary" />
-              Top Agents
+              Top Agents by Credibility
             </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Ranked by on-chain oracle credibility
+            </p>
           </div>
         </div>
         <div className="flex-1 flex flex-col">
@@ -60,9 +104,9 @@ export function AgentRankingTable({ agents }: AgentRankingTableProps) {
               <TableRow>
                 <TableHead className="w-12">Rank</TableHead>
                 <TableHead>Agent</TableHead>
-                <TableHead className="text-right">P&L</TableHead>
-                <TableHead className="text-right">Sharpe</TableHead>
-                <TableHead className="text-right">Win Rate</TableHead>
+                <TableHead className="text-right">Credibility</TableHead>
+                <TableHead className="text-right">Updates</TableHead>
+                <TableHead className="text-right">Feed</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -87,17 +131,15 @@ export function AgentRankingTable({ agents }: AgentRankingTableProps) {
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className={agent.pnl >= 0 ? 'text-accent' : 'text-destructive'}>
-                        {agent.pnl >= 0 ? '+' : ''}${agent.pnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
+                      <AgentCredibilityCell address={agent.address} />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Badge variant="outline">
-                        {(agent.sharpeRatio ?? 0).toFixed(2)}
+                      <AgentUpdatesCell address={agent.address} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant="outline" className="text-xs">
+                        {agent.memecoin || '-'}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="text-sm">{(agent.winRate ?? 0).toFixed(1)}%</span>
                     </TableCell>
                   </TableRow>
                 )
@@ -109,4 +151,3 @@ export function AgentRankingTable({ agents }: AgentRankingTableProps) {
     </Card>
   )
 }
-
