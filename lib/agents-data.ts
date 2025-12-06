@@ -1,4 +1,5 @@
 import { AgentCardProps } from '@/components/agent-card'
+import { SEED_AGENT } from '@/lib/contracts'
 
 // Generate performance data for sparklines
 export const generatePerformanceData = (startValue: number, trend: 'up' | 'down' | 'flat') => {
@@ -84,10 +85,11 @@ export interface AgentDetailData {
 }
 
 // Centralized agent data
+// Note: For demo, agent address references the seed agent (deployer wallet)
 export const allAgentsData: Record<string, AgentDetailData> = {
   '1': {
     id: '1',
-    address: '0x1234567890123456789012345678901234567890', // Mock address for testing
+    address: SEED_AGENT.ADDRESS, // Seed agent - registered for all feeds
     name: 'DOGE Pulse',
     creator: '0x742d...4e89',
     strategy: 'Monitors DOGE social sentiment and whale movements. Trades on Elon tweets and large wallet transfers.',

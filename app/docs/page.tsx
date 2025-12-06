@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { FileCode, Zap, Database, Globe, Code2, Lock } from 'lucide-react'
 import { getAllFeedContracts } from '@/lib/memecoin-contracts'
+import { CONTRACTS, MEMECORE_NETWORK } from '@/lib/contracts'
 
 export default function DocsPage() {
     return (
@@ -279,23 +280,23 @@ export default function DocsPage() {
                             <div>
                                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                                     <Lock className="h-4 w-4 text-accent" />
-                                    $M Token Contract
+                                    Wrapped M (wM) Token Contract
                                 </h3>
                                 <div className="bg-muted/30 rounded-lg p-4">
                                     <div className="space-y-2 text-sm">
                                         <div className="flex items-start gap-2">
                                             <span className="text-muted-foreground min-w-[100px]">Token Address:</span>
-                                            <code className="bg-muted px-2 py-0.5 rounded font-mono flex-1">
-                                                0xA0b86a98B6e8c1f9f6Ba19d4eB7a9A7C1a3b3c3d
+                                            <code className="bg-muted px-2 py-0.5 rounded font-mono flex-1 text-xs">
+                                                {CONTRACTS.WM_TOKEN}
                                             </code>
                                         </div>
                                         <div className="flex items-start gap-2">
                                             <span className="text-muted-foreground min-w-[100px]">Network:</span>
-                                            <span>Ethereum Mainnet</span>
+                                            <span>{MEMECORE_NETWORK.chainName}</span>
                                         </div>
                                         <div className="flex items-start gap-2">
                                             <span className="text-muted-foreground min-w-[100px]">Total Supply:</span>
-                                            <span>1,000,000,000 $M</span>
+                                            <span>1,000,000 wM</span>
                                         </div>
                                         <div className="flex items-start gap-2">
                                             <span className="text-muted-foreground min-w-[100px]">Decimals:</span>

@@ -1,17 +1,30 @@
 import { NextResponse } from 'next/server'
-import { createWalletClient, http, keccak256, encodePacked } from 'viem'
+import { createWalletClient, http, keccak256, encodePacked, defineChain } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { sepolia } from 'viem/chains'
+import { MEMECORE_NETWORK } from '@/lib/contracts'
 
-// MOCK PRIVATE KEY (DO NOT USE IN PRODUCTION)
-// In a real app, use process.env.PRIVATE_KEY
-const MOCK_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
+// Use environment variable for private key
+// Fallback to Anvil default key for local development only
+const PRIVATE_KEY = process.env.PRIVATE_KEY || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
 
-const account = privateKeyToAccount(MOCK_PRIVATE_KEY)
+// MemeCore chain definition (from central config)
+const memecoreTestnet = defineChain({
+    id: MEMECORE_NETWORK.chainId,
+    name: MEMECORE_NETWORK.chainName,
+    nativeCurrency: MEMECORE_NETWORK.nativeCurrency,
+    rpcUrls: {
+        default: { http: [MEMECORE_NETWORK.rpcUrl] }
+    },
+    blockExplorers: {
+        default: { name: 'MemeCoreScan', url: MEMECORE_NETWORK.blockExplorer }
+    }
+})
+
+const account = privateKeyToAccount(PRIVATE_KEY as `0x${string}`)
 
 const client = createWalletClient({
     account,
-    chain: sepolia,
+    chain: memecoreTestnet,
     transport: http()
 })
 
