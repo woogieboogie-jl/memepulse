@@ -32,6 +32,7 @@ MemePulse enables users to deploy AI trading agents that execute memecoin perpet
 - [Problem Statement](#problem-statement)
 - [Solution](#solution)
 - [Architecture](#architecture)
+- [AI Agent Infrastructure](#ai-agent-infrastructure)
 - [Core Flow](#core-flow)
 - [Smart Contracts](#smart-contracts)
 - [Frontend Pages](#frontend-pages)
@@ -161,6 +162,135 @@ graph LR
     PC -->|Reward Multipliers| MD
     PC -->|VCWAP Settings| AG
 ```
+
+---
+
+## AI Agent Infrastructure
+
+MemePulse AI agents run on AWS infrastructure with two main components:
+
+1. **AWS Lambda** - REST API for agent management (CRUD, start/stop)
+2. **ECS Fargate** - Container runtime for AI trading agents
+
+### Infrastructure Overview
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              User Dashboard                                   │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                             API Gateway (HTTP)                                │
+│                          JWT Authentication                                   │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                      │
+          ┌───────────────────────────┼───────────────────────────┐
+          ▼                           ▼                           ▼
+┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐
+│   Auth Lambdas   │      │  Agent Lambdas   │      │ Decision Lambdas │
+│                  │      │                  │      │                  │
+│ • /auth/message  │      │ • POST /agents   │      │ • GET decisions  │
+│ • /auth/verify   │      │ • GET /agents    │      │                  │
+│ • GET /me        │      │ • start/stop     │      │                  │
+└──────────────────┘      └──────────────────┘      └──────────────────┘
+          │                         │                         │
+          └─────────────────────────┼─────────────────────────┘
+                                    ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                            Aurora DSQL (PostgreSQL)                           │
+│  ┌─────────┐    ┌─────────┐    ┌─────────────┐    ┌──────────────┐          │
+│  │  User   │───▶│  Agent  │───▶│ DecisionLog │    │  SubAccount  │          │
+│  └─────────┘    └─────────┘    └─────────────┘    └──────────────┘          │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ Agent Start
+                                    ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              ECS Fargate Cluster                              │
+│   ┌────────────────────┐  ┌────────────────────┐  ┌────────────────────┐    │
+│   │  Agent Container   │  │  Agent Container   │  │  Agent Container   │    │
+│   │  ┌──────────────┐  │  │  ┌──────────────┐  │  │  ┌──────────────┐  │    │
+│   │  │  LLM Agent   │  │  │  │  LLM Agent   │  │  │  │  LLM Agent   │  │    │
+│   │  │  (Claude)    │  │  │  │  (Claude)    │  │  │  │  (Claude)    │  │    │
+│   │  └──────────────┘  │  │  └──────────────┘  │  │  └──────────────┘  │    │
+│   └────────────────────┘  └────────────────────┘  └────────────────────┘    │
+└──────────────────────────────────────────────────────────────────────────────┘
+          │                         │                         │
+          └─────────────────────────┼─────────────────────────┘
+                                    │
+                    ┌───────────────┼───────────────┐
+                    ▼               ▼               ▼
+          ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+          │   Orderly    │  │  Aurora DSQL │  │   MemeCore   │
+          │   Network    │  │  (Decisions) │  │  Blockchain  │
+          │   (Trading)  │  │              │  │              │
+          └──────────────┘  └──────────────┘  └──────────────┘
+```
+
+### Agent Execution Flow
+
+Each AI agent container follows this trading loop:
+
+```
+┌─────────────┐
+│   Trigger   │  (Timer: every 60s)
+└──────┬──────┘
+       │ fires
+       ▼
+┌─────────────┐
+│  Providers  │  (Price, Position from Orderly)
+└──────┬──────┘
+       │ gather context
+       ▼
+┌─────────────┐
+│  LLM Agent  │  (Claude AI analyzes market)
+└──────┬──────┘
+       │ decision (BUY/SELL/HOLD)
+       ▼
+┌─────────────┐
+│  Executor   │  (Execute on Orderly Network)
+└──────┬──────┘
+       │ trade result
+       ▼
+┌─────────────┐
+│   Hooks     │  
+│ • Database  │  (Log decision to Aurora)
+│ • MemeCore  │  (Submit price to Aggregator)
+└─────────────┘
+```
+
+### Agent Status Lifecycle
+
+| Status | Description |
+|--------|-------------|
+| `stopped` | Agent is not running |
+| `starting` | ECS service created, waiting for container |
+| `running` | Container is active, trading loop executing |
+| `stopping` | ECS service being terminated |
+
+### Container Environment
+
+Each agent container receives unique credentials:
+
+| Variable | Description |
+|----------|-------------|
+| `AGENT_ID` | Unique agent identifier |
+| `ORDERLY_ACCOUNT_ID` | Orderly sub-account for trading |
+| `ORDERLY_PUBLIC_KEY` | API authentication |
+| `ORDERLY_SECRET_KEY` | API authentication |
+| `ANTHROPIC_API_KEY` | Claude AI for decision making |
+| `MEMECORE_PRIVATE_KEY` | Wallet for oracle submissions |
+
+### MemeCore Integration
+
+The **MemeCoreHook** is called after each trading decision:
+
+1. Converts trade result to `PriceReport` struct
+2. Calls `Aggregator.submitUpdate()` on MemeCore
+3. Includes: price, volume, leverage, timestamp, Orderly txHash
+
+This is how trading activity becomes oracle data.
 
 ---
 
