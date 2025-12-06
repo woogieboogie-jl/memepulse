@@ -14,7 +14,7 @@ export const memeCoreTestnet = defineChain({
         },
     },
     blockExplorers: {
-        default: { name: 'MemeCoreScan', url: 'https://formicarium.memecorescan.io' },
+        default: { name: 'MemeCore Explorer', url: 'https://insectarium.blockscout.memecore.com' },
     },
 })
 

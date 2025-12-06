@@ -61,7 +61,7 @@ export const MEMECORE_NETWORK = {
   chainId: 43522,
   chainName: 'MemeCore Insectarium Testnet',
   rpcUrl: 'https://rpc-testnet.memecore.com',
-  blockExplorer: 'https://testnet.memecorescan.io',
+  blockExplorer: 'https://insectarium.blockscout.memecore.com',
   nativeCurrency: {
     name: 'M',
     symbol: 'M',

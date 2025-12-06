@@ -41,7 +41,7 @@ export function OracleUpdateFeed({ symbol, limit = 50 }: OracleUpdateFeedProps) 
     }
 
     const getMemeCoreTxUrl = (txHash: string) => {
-        return `https://formicarium.memecorescan.io/tx/${txHash}`
+        return `https://insectarium.blockscout.memecore.com/tx/${txHash}`
     }
 
     const getPulseChangeColor = (prev: number, curr: number) => {
