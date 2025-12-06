@@ -260,7 +260,6 @@ export default function CreateAgentPage() {
     <WalletRequired
       title="Connect Your Wallet"
       description="Please connect your wallet to create an AI trading agent."
-      variant="minimal"
     >
     <div className="min-h-screen bg-background">
       <NavHeader />

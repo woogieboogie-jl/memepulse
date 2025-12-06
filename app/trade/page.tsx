@@ -115,7 +115,6 @@ export default function TradePage() {
     <WalletRequired
       title="Connect Your Wallet"
       description="Please connect your wallet to access Manual Trading mode."
-      variant="minimal"
     >
     <div className="min-h-screen bg-background">
       <NavHeader />
