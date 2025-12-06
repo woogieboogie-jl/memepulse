@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 
-import { Key, AlertTriangle, Coins, LayoutDashboard } from 'lucide-react'
+import { Key, AlertTriangle, Coins, LayoutDashboard, LogOut } from 'lucide-react'
 import { KeyRenewalModal } from '@/components/modals/key-renewal-modal'
 import {
   Tooltip,
@@ -13,12 +13,25 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
-import { useWallet } from '@/hooks/use-wallet'
 import { useWMBalance } from '@/hooks/use-contracts'
+import { useConnectWallet } from '@web3-onboard/react'
+import { useAuth } from '@/contexts/AuthContext'
 
 export function NavHeader() {
-  const { address, isConnected, connect, disconnect, isConnecting } = useWallet()
+  const [{ wallet }, connect] = useConnectWallet()
+  const { isAuthenticated, isAuthenticating, logout } = useAuth()
+
+  const address = wallet?.accounts?.[0]?.address
+  const isConnected = !!wallet
+
   const [isRegistered, setIsRegistered] = useState(false)
   const [keyExpired, setKeyExpired] = useState(false)
   const [showKeyModal, setShowKeyModal] = useState(false)
@@ -31,6 +44,8 @@ export function NavHeader() {
   // Check registration and key status
   useEffect(() => {
     const checkStatus = () => {
+      if (typeof window === 'undefined') return
+
       const registered = localStorage.getItem('orderly_registered') === 'true'
       const expired = localStorage.getItem('orderly_key_expired') === 'true'
 
@@ -40,14 +55,13 @@ export function NavHeader() {
 
     checkStatus()
 
-    // Listen for storage changes (from demo control panel or other tabs)
+    // Listen for storage changes
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'orderly_registered' || e.key === 'orderly_key_expired') {
         checkStatus()
       }
     }
 
-    // Listen for custom event (for same-tab changes)
     const handleCustomStorageChange = () => {
       checkStatus()
     }
@@ -62,24 +76,25 @@ export function NavHeader() {
   }, [])
 
   const handleKeyClick = () => {
-    // If not registered, redirect to registration
     if (!isRegistered) {
       router.push('/register')
     } else if (keyExpired) {
-      // If key expired, show renewal modal
       setShowKeyModal(true)
     } else {
-      // Show informational modal for active key
       setShowKeyModal(true)
     }
   }
 
-  const handleWalletToggle = () => {
-    if (isConnected) {
-      disconnect()
-    } else {
-      connect()
+  const handleConnect = async () => {
+    try {
+      await connect()
+    } catch (error) {
+      console.error('Failed to connect wallet:', error)
     }
+  }
+
+  const handleDisconnect = () => {
+    logout()
   }
 
   // Determine button state
@@ -184,7 +199,7 @@ export function NavHeader() {
 
         <div className="flex items-center gap-3">
           {/* wM Token Balance */}
-          {isConnected && (
+          {isConnected && isAuthenticated && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -204,7 +219,7 @@ export function NavHeader() {
                 </TooltipTrigger>
                 <TooltipContent className="z-[9999]" side="bottom" sideOffset={5}>
                   <p className="font-body text-xs">
-                    {wmBalance > 0 
+                    {wmBalance > 0
                       ? `${wmBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })} wM tokens`
                       : 'No wM tokens yet'}
                   </p>
@@ -224,7 +239,7 @@ export function NavHeader() {
             <LayoutDashboard className="h-5 w-5" />
           </Button>
 
-          {isConnected && (
+          {isConnected && isAuthenticated && (
             <div className="relative">
               <Button
                 variant={buttonState.variant}
@@ -245,12 +260,27 @@ export function NavHeader() {
           )}
 
           {isConnected ? (
-            <Button variant="outline" className="font-mono text-sm" onClick={handleWalletToggle}>
-              {address?.slice(0, 6)}...{address?.slice(-4)}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="font-mono text-sm">
+                  {address?.slice(0, 6)}...{address?.slice(-4)}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => router.push('/my-agents')}>
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  My Agents
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleDisconnect} className="text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Disconnect
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
-            <Button onClick={handleWalletToggle} disabled={isConnecting}>
-              {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+            <Button onClick={handleConnect} disabled={isAuthenticating}>
+              {isAuthenticating ? 'Connecting...' : 'Connect Wallet'}
             </Button>
           )}
         </div>

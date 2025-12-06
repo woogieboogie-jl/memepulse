@@ -9,6 +9,17 @@
     "start": "next start"
   },
   "dependencies": {
+    "@orderly.network/core": "^2.8.3",
+    "@orderly.network/default-evm-adapter": "^2.8.3",
+    "@orderly.network/hooks": "^2.8.3",
+    "@orderly.network/types": "^2.8.3",
+    "@orderly.network/web3-provider-ethers": "^2.8.3",
+    "@web3-onboard/injected-wallets": "^2.11.3",
+    "@web3-onboard/react": "^2.11.0",
+    "@web3-onboard/walletconnect": "^2.6.3",
+    "buffer": "^6.0.3",
+    "ethers": "^5.8.0",
+    "siwe": "^3.0.0",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
