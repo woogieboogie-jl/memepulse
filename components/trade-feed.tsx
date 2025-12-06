@@ -1,66 +1,85 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useState, useEffect } from 'react'
-import { useTheme } from 'next-themes'
-import { generateRecentTrades, type Trade } from '@/lib/trading-data'
-import { TrendingUp, TrendingDown, Clock } from 'lucide-react'
+import { useOrderlyTrades } from '@/hooks/use-orderly-market'
+import { TrendingUp, TrendingDown, Clock, Loader2 } from 'lucide-react'
 
 interface TradeFeedProps {
   selectedAsset: string
 }
 
 export function TradeFeed({ selectedAsset }: TradeFeedProps) {
-  const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  const [trades, setTrades] = useState<Trade[]>([])
+  const { trades, isLoading, hasData } = useOrderlyTrades(selectedAsset)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Generate trade feed data
-  useEffect(() => {
-    if (!mounted) return
-
-    const loadTrades = () => {
-      const recentTrades = generateRecentTrades(selectedAsset, 30) // 30 recent trades
-      setTrades(recentTrades)
-    }
-
-    loadTrades()
-
-    // Update trades every 3 seconds for live feel
-    const interval = setInterval(loadTrades, 3000)
-    return () => clearInterval(interval)
-  }, [selectedAsset, mounted])
-
-  const isDark = mounted && theme === 'dark'
-
-  if (!mounted || trades.length === 0) {
+  if (!mounted) {
     return (
       <div className="h-full flex flex-col">
-      <div className="pb-1 px-2 pt-2 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <span className="text-[9px] text-muted-foreground font-sans">Last 30 trades</span>
-          <Badge variant="outline" className="text-[8px] px-1 py-0 font-sans h-3.5">
-            {selectedAsset.replace('-PERP', '')}
-          </Badge>
+        <div className="pb-1 px-2 pt-2 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] text-muted-foreground font-sans">Loading...</span>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       </div>
+    )
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="pb-2 px-3 pt-3 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium font-sans">Recent Trades</h3>
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-sans">
+              {selectedAsset.replace('-PERP', '')}
+            </Badge>
+          </div>
+        </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-pulse">
-              <div className="h-3 bg-muted rounded w-20 mx-auto mb-2"></div>
-              <div className="h-3 bg-muted rounded w-16 mx-auto mb-1"></div>
-              <div className="h-3 bg-muted rounded w-18 mx-auto"></div>
-            </div>
+            <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto mb-2" />
+            <p className="text-xs text-muted-foreground">Loading trades...</p>
           </div>
         </div>
       </div>
     )
   }
+
+  // Show empty state if no data
+  if (!hasData || trades.length === 0) {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="pb-2 px-3 pt-3 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium font-sans">Recent Trades</h3>
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-sans">
+              {selectedAsset.replace('-PERP', '')}
+            </Badge>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground">No recent trades</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Connect wallet for live data</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Count buys and sells
+  const buyCount = trades.filter(t => t.side === 'BUY').length
+  const sellCount = trades.filter(t => t.side === 'SELL').length
+  const totalVolume = trades.reduce((sum, t) => sum + (t.price * t.size), 0)
 
   return (
     <div className="h-full flex flex-col">
@@ -74,10 +93,16 @@ export function TradeFeed({ selectedAsset }: TradeFeedProps) {
         
         {/* Trade Stats */}
         <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-1">
-          <span className="font-sans">Last {trades.length} trades</span>
+          <div className="flex items-center gap-2">
+            <span className="font-sans">Last {trades.length} trades</span>
+            <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 bg-green-500/10 border-green-500/30 text-green-600">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1 animate-pulse" />
+              LIVE
+            </Badge>
+          </div>
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            <span className="font-sans">Live</span>
+            <span className="font-sans">Orderly</span>
           </div>
         </div>
       </div>
@@ -97,7 +122,7 @@ export function TradeFeed({ selectedAsset }: TradeFeedProps) {
         <div className="flex-1 overflow-y-auto">
           <div className="space-y-0">
             {trades.slice(0, 20).map((trade, index) => {
-              const isBuy = trade.side === 'buy'
+              const isBuy = trade.side === 'BUY'
               const timeStr = new Date(trade.timestamp).toLocaleTimeString('en-US', { 
                 hour12: false, 
                 hour: '2-digit', 
@@ -157,19 +182,15 @@ export function TradeFeed({ selectedAsset }: TradeFeedProps) {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="font-sans">
-                  Buys: {trades.filter(t => t.side === 'buy').length}
-                </span>
+                <span className="font-sans">Buys: {buyCount}</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <span className="font-sans">
-                  Sells: {trades.filter(t => t.side === 'sell').length}
-                </span>
+                <span className="font-sans">Sells: {sellCount}</span>
               </div>
             </div>
             <span className="font-sans">
-              Vol: ${trades.reduce((sum, t) => sum + (t.price * t.size), 0).toFixed(0)}
+              Vol: ${totalVolume.toFixed(0)}
             </span>
           </div>
         </div>
