@@ -14,6 +14,7 @@ import { useConnectWallet } from '@web3-onboard/react'
 import { useAccount } from '@orderly.network/hooks'
 import { useAuth } from '@/contexts/AuthContext'
 import { agentApi, type AgentResponse } from '@/lib/api'
+import { WalletRequired } from '@/components/wallet-required'
 
 interface SubAccountBalance {
   holding: number
@@ -184,25 +185,8 @@ export default function MyAgentsPage() {
     )
   })
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-background/80 backdrop-blur-sm">
-        <NavHeader />
-        <main className="container mx-auto px-4 py-16">
-          <div className="max-w-2xl mx-auto text-center">
-            <h1 className="text-3xl font-bold mb-4 text-foreground font-pixel">
-              Connect Your Wallet
-            </h1>
-            <p className="text-muted-foreground mb-8">
-              Please connect your wallet to view your AI trading agents.
-            </p>
-          </div>
-        </main>
-      </div>
-    )
-  }
-
-  if (isLoading) {
+  // Loading state (only shown when authenticated)
+  if (isAuthenticated && isLoading) {
     return (
       <div className="min-h-screen bg-background/80 backdrop-blur-sm">
         <NavHeader />
@@ -217,63 +201,68 @@ export default function MyAgentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background/80 backdrop-blur-sm">
-      <NavHeader />
+    <WalletRequired
+      title="Connect Your Wallet"
+      description="Connect your wallet to view and manage your AI trading agents."
+    >
+      <div className="min-h-screen bg-background/80 backdrop-blur-sm">
+        <NavHeader />
 
-      <main className="container mx-auto px-4 py-4">
-        <div className="w-full max-w-6xl mx-auto">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="mb-4">
-              <h1 className="text-3xl font-bold font-pixel">Command Center</h1>
-              <p className="text-sm text-muted-foreground">
-                Manage your deployed agents and claim mining rewards
-              </p>
-            </div>
-            <Button asChild>
-              <Link href="/create">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Agent
-              </Link>
-            </Button>
-          </div>
-
-          <PortfolioOverview />
-
-          {agentCards.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="flex flex-col items-center justify-center py-16">
-                <Bot className="mb-4 h-12 w-12 text-muted-foreground" />
-                <h3 className="mb-2 text-xl font-semibold">No agents yet</h3>
-                <p className="mb-6 text-center text-muted-foreground">
-                  Create your first AI trading agent to get started
+        <main className="container mx-auto px-4 py-4">
+          <div className="w-full max-w-6xl mx-auto">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="mb-4">
+                <h1 className="text-3xl font-bold font-pixel">Command Center</h1>
+                <p className="text-sm text-muted-foreground">
+                  Manage your deployed agents and claim mining rewards
                 </p>
-                <Button asChild>
-                  <Link href="/create">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Your First Agent
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-3 md:grid-cols-2">
-              {agentCards.map((agent) => (
-                <AgentCard
-                  key={agent.id}
-                  {...agent}
-                />
-              ))}
+              </div>
+              <Button asChild>
+                <Link href="/create">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Agent
+                </Link>
+              </Button>
             </div>
-          )}
-        </div>
-      </main>
 
-      <KeyRenewalModal
-        isOpen={showRenewalModal}
-        onClose={() => setShowRenewalModal(false)}
-        onSuccess={handleRenewalSuccess}
-        isExpired={true}
-      />
-    </div>
+            <PortfolioOverview />
+
+            {agentCards.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-16">
+                  <Bot className="mb-4 h-12 w-12 text-muted-foreground" />
+                  <h3 className="mb-2 text-xl font-semibold">No agents yet</h3>
+                  <p className="mb-6 text-center text-muted-foreground">
+                    Create your first AI trading agent to get started
+                  </p>
+                  <Button asChild>
+                    <Link href="/create">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create Your First Agent
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2">
+                {agentCards.map((agent) => (
+                  <AgentCard
+                    key={agent.id}
+                    {...agent}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </main>
+
+        <KeyRenewalModal
+          isOpen={showRenewalModal}
+          onClose={() => setShowRenewalModal(false)}
+          onSuccess={handleRenewalSuccess}
+          isExpired={true}
+        />
+      </div>
+    </WalletRequired>
   )
 }

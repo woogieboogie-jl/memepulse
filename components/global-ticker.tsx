@@ -11,15 +11,9 @@ import {
 } from "@/components/ui/tooltip"
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 import { decodeAbiParameters } from 'viem'
+import { formatPrice } from '@/lib/format'
 
 const SUPPORTED_SYMBOLS = Object.keys(CONTRACTS.PRICE_FEEDS) as (keyof typeof CONTRACTS.PRICE_FEEDS)[]
-
-function formatPrice(price: number) {
-  if (price > 1) {
-    return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  }
-  return price.toFixed(8)
-}
 
 async function fetchLatestRoundData(feed: string) {
   const payload = {
@@ -56,7 +50,7 @@ async function fetchLatestRoundData(feed: string) {
     result as `0x${string}`
   )
 
-  const hasData = Number(roundId) > 0 && answer > 0n
+  const hasData = Number(roundId) > 0 && answer > BigInt(0)
   const price = hasData ? Number(answer) / 1e8 : null
   return { price, updatedAt: Number(updatedAt), hasData }
 }
@@ -119,7 +113,7 @@ function TickerItem({ symbol }: { symbol: keyof typeof CONTRACTS.PRICE_FEEDS }) 
         {loading ? (
           <span className="animate-pulse">...</span>
         ) : hasData && price !== null ? (
-          `$${formatPrice(price)}`
+          formatPrice(price, { showCurrency: true })
         ) : (
           <TooltipProvider>
             <Tooltip>

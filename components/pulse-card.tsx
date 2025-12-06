@@ -15,6 +15,7 @@ import {
 import { useAggregatorStats, useFeedRewardMultiplier } from '@/hooks/use-contracts'
 import { usePriceWithChange } from '@/hooks/use-price-with-change'
 import { CONTRACTS } from '@/lib/contracts'
+import { formatPrice, formatPercentChange } from '@/lib/format'
 
 export interface PulseCardProps {
     memecoin: string
@@ -117,14 +118,14 @@ export function PulseCard({
                             {isPriceLoading ? (
                                 <span className="animate-pulse">...</span>
                             ) : displayPrice !== undefined && displayPrice !== null ? (
-                                `$${displayPrice > 1 ? displayPrice.toLocaleString() : displayPrice.toFixed(8)}`
+                                formatPrice(displayPrice, { showCurrency: true })
                             ) : (
                                 <EmptyValue tooltip="Feed not activated yet" />
                             )}
                         </div>
                         <div className={`text-xs ${displayChange !== undefined && displayChange !== null && displayChange >= 0 ? 'text-accent' : 'text-destructive'}`}>
                             {displayChange !== undefined && displayChange !== null ? (
-                                `${displayChange >= 0 ? '+' : ''}${displayChange.toFixed(2)}%`
+                                formatPercentChange(displayChange)
                             ) : (
                                 <EmptyValue tooltip="Building price history..." />
                             )}
