@@ -174,90 +174,61 @@ MemePulse AI agents run on AWS infrastructure with two main components:
 
 ### Infrastructure Overview
 
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                              User Dashboard                                   │
-└──────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                                      ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                             API Gateway (HTTP)                                │
-│                          JWT Authentication                                   │
-└──────────────────────────────────────────────────────────────────────────────┘
-                                      │
-          ┌───────────────────────────┼───────────────────────────┐
-          ▼                           ▼                           ▼
-┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐
-│   Auth Lambdas   │      │  Agent Lambdas   │      │ Decision Lambdas │
-│                  │      │                  │      │                  │
-│ • /auth/message  │      │ • POST /agents   │      │ • GET decisions  │
-│ • /auth/verify   │      │ • GET /agents    │      │                  │
-│ • GET /me        │      │ • start/stop     │      │                  │
-└──────────────────┘      └──────────────────┘      └──────────────────┘
-          │                         │                         │
-          └─────────────────────────┼─────────────────────────┘
-                                    ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                            Aurora DSQL (PostgreSQL)                           │
-│  ┌─────────┐    ┌─────────┐    ┌─────────────┐    ┌──────────────┐          │
-│  │  User   │───▶│  Agent  │───▶│ DecisionLog │    │  SubAccount  │          │
-│  └─────────┘    └─────────┘    └─────────────┘    └──────────────┘          │
-└──────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    │ Agent Start
-                                    ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                              ECS Fargate Cluster                              │
-│   ┌────────────────────┐  ┌────────────────────┐  ┌────────────────────┐    │
-│   │  Agent Container   │  │  Agent Container   │  │  Agent Container   │    │
-│   │  ┌──────────────┐  │  │  ┌──────────────┐  │  │  ┌──────────────┐  │    │
-│   │  │  LLM Agent   │  │  │  │  LLM Agent   │  │  │  │  LLM Agent   │  │    │
-│   │  │  (Claude)    │  │  │  │  (Claude)    │  │  │  │  (Claude)    │  │    │
-│   │  └──────────────┘  │  │  └──────────────┘  │  │  └──────────────┘  │    │
-│   └────────────────────┘  └────────────────────┘  └────────────────────┘    │
-└──────────────────────────────────────────────────────────────────────────────┘
-          │                         │                         │
-          └─────────────────────────┼─────────────────────────┘
-                                    │
-                    ┌───────────────┼───────────────┐
-                    ▼               ▼               ▼
-          ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-          │   Orderly    │  │  Aurora DSQL │  │   MemeCore   │
-          │   Network    │  │  (Decisions) │  │  Blockchain  │
-          │   (Trading)  │  │              │  │              │
-          └──────────────┘  └──────────────┘  └──────────────┘
+```mermaid
+graph TB
+    subgraph User["User Layer"]
+        Dashboard[User Dashboard]
+    end
+    
+    subgraph API["API Gateway + JWT Auth"]
+        Auth[Auth Lambdas<br>/auth/message, /auth/verify]
+        AgentAPI[Agent Lambdas<br>CRUD, start/stop]
+        DecisionAPI[Decision Lambdas]
+    end
+    
+    subgraph DB["Aurora DSQL"]
+        UserTable[(User)]
+        AgentTable[(Agent)]
+        DecisionTable[(DecisionLog)]
+    end
+    
+    subgraph ECS["ECS Fargate Cluster"]
+        C1[Agent Container<br>Claude AI]
+        C2[Agent Container<br>Claude AI]
+        C3[Agent Container<br>Claude AI]
+    end
+    
+    subgraph External["External Services"]
+        Orderly[Orderly Network]
+        MemeCore[MemeCore L1]
+    end
+    
+    Dashboard --> Auth
+    Dashboard --> AgentAPI
+    Auth --> UserTable
+    AgentAPI --> AgentTable
+    AgentAPI -->|Start| ECS
+    C1 --> Orderly
+    C1 --> MemeCore
+    C2 --> Orderly
+    C3 --> MemeCore
 ```
 
 ### Agent Execution Flow
 
 Each AI agent container follows this trading loop:
 
-```
-┌─────────────┐
-│   Trigger   │  (Timer: every 60s)
-└──────┬──────┘
-       │ fires
-       ▼
-┌─────────────┐
-│  Providers  │  (Price, Position from Orderly)
-└──────┬──────┘
-       │ gather context
-       ▼
-┌─────────────┐
-│  LLM Agent  │  (Claude AI analyzes market)
-└──────┬──────┘
-       │ decision (BUY/SELL/HOLD)
-       ▼
-┌─────────────┐
-│  Executor   │  (Execute on Orderly Network)
-└──────┬──────┘
-       │ trade result
-       ▼
-┌─────────────┐
-│   Hooks     │  
-│ • Database  │  (Log decision to Aurora)
-│ • MemeCore  │  (Submit price to Aggregator)
-└─────────────┘
+```mermaid
+flowchart TD
+    A[Trigger - 60s Timer] -->|fires| B[Providers]
+    B -->|Price, Position| C[LLM Agent - Claude]
+    C -->|analyze| D{Decision}
+    D -->|BUY/SELL| E[Executor - Orderly]
+    D -->|HOLD| F[Skip]
+    E --> G[Hooks]
+    F --> G
+    G --> H[Database Hook<br>Log to Aurora]
+    G --> I[MemeCore Hook<br>Submit to Aggregator]
 ```
 
 ### Agent Status Lifecycle
