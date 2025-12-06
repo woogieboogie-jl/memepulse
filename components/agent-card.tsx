@@ -14,7 +14,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
-import { useMiningStats, useClaimRewards, useCurrentEpoch, useClaimableRewards, useCredibility } from '@/hooks/use-contracts'
+import { useMiningStats, useClaimRewards, useCurrentEpoch, useClaimableRewards, useCredibility, useEstimatedRewards } from '@/hooks/use-contracts'
 
 export interface AgentCardProps {
   id: string
@@ -105,7 +105,8 @@ export function AgentCard({
   
   // Live Mining Stats - epoch-based
   const { currentEpoch, isLoading: isEpochLoading } = useCurrentEpoch()
-  const { updates, volume, hasData: hasMiningData, isLoading: isMiningLoading } = useMiningStats(address)
+  const { updates, hasData: hasMiningData, isLoading: isMiningLoading } = useMiningStats(address)
+  const { estimatedRewards, hasData: hasRewardData, isLoading: isRewardsLoading } = useEstimatedRewards(address, currentEpoch)
   const { claimable, isLoading: isClaimableLoading } = useClaimableRewards(address, currentEpoch > 1 ? currentEpoch - 1 : 0)
   const { mutate: claimRewards, isPending: isClaiming } = useClaimRewards()
   
@@ -160,9 +161,10 @@ export function AgentCard({
   const cardClassName = `overflow-hidden transition-all cursor-pointer group h-full hover:border-primary/50 ${shouldPulse ? 'animate-pulse-glow' : ''
     }`
 
-  // Determine displayed contributions
+  // Determine displayed contributions and rewards
   const displayContributions = hasMiningData ? updates : oracleContributions
-  const displayMined = hasMiningData ? volume : mTokensMined
+  // Show actual token rewards from on-chain, not trading volume
+  const displayMined = hasRewardData ? estimatedRewards : mTokensMined
 
   return (
     <Card className={cardClassName} onClick={handleCardClick}>
@@ -205,10 +207,22 @@ export function AgentCard({
         {/* Credibility Gauge */}
         <div className="mb-2">
           <div className="flex items-center justify-between text-xs mb-1">
-            <span className="text-muted-foreground flex items-center gap-1">
-              <Activity className="h-3 w-3" />
-              Credibility
-            </span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-muted-foreground flex items-center gap-1 cursor-help">
+                    <Activity className="h-3 w-3" />
+                    Credibility
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="z-[9999]" side="top" sideOffset={5}>
+                  <p className="font-body text-xs max-w-[200px]">
+                    On-chain credibility score based on oracle accuracy.<br /><br />
+                    <span className="text-muted-foreground">Future: Slashing for inaccurate updates, restaking for boosted rewards.</span>
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <span className={`font-bold ${getCredibilityColor()}`}>
               {isCredibilityLoading ? '...' : `${displayCredibility}%`}
             </span>
@@ -276,14 +290,14 @@ export function AgentCard({
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-primary">
-                {isMiningLoading ? (
+                {isRewardsLoading ? (
                   <span className="animate-pulse">...</span>
-                ) : hasMiningData ? (
-                  displayMined.toLocaleString()
+                ) : hasRewardData && displayMined > 0 ? (
+                  displayMined.toFixed(2)
                 ) : mTokensMined > 0 ? (
                   mTokensMined.toLocaleString()
                 ) : (
-                  <EmptyValue tooltip="No mining activity yet" />
+                  <EmptyValue tooltip="No rewards earned yet - submit oracle updates to earn wM" />
                 )}
               </span>
               {claimable > 0 && !isClaimableLoading && (
@@ -302,12 +316,12 @@ export function AgentCard({
           <div className="text-[10px] text-muted-foreground mt-0.5">
             {isMiningLoading ? (
               <span className="animate-pulse">...</span>
-            ) : hasMiningData ? (
-              `${displayContributions} oracle contributions`
+            ) : hasMiningData && displayContributions > 0 ? (
+              `${displayContributions} oracle updates this epoch`
             ) : oracleContributions > 0 ? (
               `${oracleContributions} oracle contributions`
             ) : (
-              <EmptyValue tooltip="No contributions yet" />
+              <EmptyValue tooltip="Submit price updates via trading to earn rewards" />
             )}
           </div>
         </div>

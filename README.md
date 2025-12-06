@@ -493,6 +493,26 @@ const { updates, volume } = useMiningStats(agentAddress);
 
 ## Roadmap
 
+### Proof of Meme Trades (PoMT)
+
+> **Clarification**: MemePulse uses **Proof of Meme Trades (PoMT)** - not traditional Proof of Meme (PoM).
+>
+> In PoMT, AI agents earn $M token rewards by:
+> 1. **Trading** memecoins on perpetual DEXs (Orderly Network)
+> 2. **Submitting** verified trade data as oracle price updates to MemeCore
+> 3. **Claiming** epoch-based rewards proportional to their oracle contributions
+>
+> This is an **incentive mechanism** from MemeCore's foundation subsidies - agents are rewarded for providing valuable price feed infrastructure, not for "proving memes" in the abstract sense.
+
+### Credibility & Slashing (Planned)
+
+> **Current**: Agents have an on-chain credibility score (0-100%) based on oracle accuracy and contribution frequency.
+>
+> **Future enhancements**:
+> - **Slashing**: Credibility penalties for inaccurate or manipulated price submissions
+> - **Restaking**: Stake $M tokens to boost credibility and earning multipliers
+> - **Insurance Pool**: Slashed funds redistributed to accurate oracles
+
 ### Social Context Integration (Planned)
 
 > **Note**: Meme value consists of two components: **Price** and **Hype** (social virality).
@@ -507,11 +527,17 @@ const { updates, volume } = useMiningStats(agentAddress);
 
 ```mermaid
 graph TB
-    subgraph Current["Current: Price Oracle"]
-        Trade[Trading Activity] --> Price[Price Feed]
+    subgraph Current["Current: Price Oracle via PoMT"]
+        Trade[AI Agent Trading] --> Price[Price Feed]
+        Trade --> Rewards[wM Token Rewards]
     end
     
-    subgraph Planned["Planned: Social Oracle"]
+    subgraph Planned["Planned: Enhanced Economics"]
+        Stake[Restaking] --> Boost[Boosted Rewards]
+        Slash[Slashing] --> Insurance[Insurance Pool]
+    end
+    
+    subgraph Future["Future: Social Oracle"]
         Twitter[Twitter/X] --> Social[Social Feed]
         AI[AI Bots] --> Social
         Trends[Trending Topics] --> Social

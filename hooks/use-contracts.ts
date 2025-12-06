@@ -317,6 +317,39 @@ export function useEpochTotalVolume(epoch?: number) {
     }
 }
 
+/**
+ * Fetches estimated token rewards for an agent in the current epoch.
+ * This shows how many wM tokens the agent will earn based on their contributions.
+ */
+export function useEstimatedRewards(agentAddress?: string, epoch?: number) {
+    const { data, isError, isLoading } = useQuery({
+        queryKey: ['estimatedRewards', agentAddress, epoch],
+        queryFn: async () => {
+            if (!agentAddress || epoch === undefined) return 0n
+            try {
+                return await publicClient.readContract({
+                    address: CONTRACTS.M_TOKEN_DISTRIBUTOR as Address,
+                    abi: ABIS.M_TOKEN_DISTRIBUTOR,
+                    functionName: 'calculateReward',
+                    args: [agentAddress as Address, BigInt(epoch)]
+                }) as bigint
+            } catch {
+                return 0n
+            }
+        },
+        enabled: !!agentAddress && epoch !== undefined,
+        refetchInterval: 30000, // Refresh every 30s
+    })
+
+    return {
+        estimatedRewards: data ? Number(formatUnits(data, 18)) : 0,
+        rawEstimated: data ?? 0n,
+        hasData: data !== undefined && data > 0n,
+        isError,
+        isLoading
+    }
+}
+
 // ============================================
 // NEW HOOKS - Contract Data Coverage
 // ============================================
