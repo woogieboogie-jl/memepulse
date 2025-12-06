@@ -9,7 +9,10 @@ After executing a trade on Orderly, add this ONE fetch call:
 ```typescript
 await fetch('/api/trades', {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 
+    'Content-Type': 'application/json',
+    'x-api-key': process.env.TRADES_API_KEY  // Required for write access
+  },
   body: JSON.stringify({
     agent: agentAddress,           // Same as submitUpdate
     feedSymbol: 'DOGE',            // Same as submitUpdate
@@ -71,7 +74,13 @@ async function executeTradeAndReport(
 
 ### POST /api/trades
 
-Records a trade for performance tracking.
+Records a trade for performance tracking. **Requires API key.**
+
+**Headers:**
+| Header | Required | Description |
+|--------|----------|-------------|
+| Content-Type | Yes | `application/json` |
+| x-api-key | Yes | API key (get from project owner) |
 
 **Request Body:**
 | Field | Type | Required | Description |
@@ -97,7 +106,7 @@ Records a trade for performance tracking.
 
 ### GET /api/trades
 
-Retrieves recorded trades.
+Retrieves recorded trades. **No API key required** (read-only).
 
 **Query Parameters:**
 - `agent` - Filter by agent address
@@ -154,11 +163,17 @@ Returns performance data for the dashboard chart.
 
 ## Environment Setup
 
-For persistence, add to `.env.local`:
+**Required for your agent:**
+```bash
+# API key for posting trades (get from project owner)
+TRADES_API_KEY="your-api-key-here"
 ```
+
+**For local development with persistence (optional):**
+```bash
 REDIS_URL="redis://default:YOUR_PASSWORD@your-redis-host:PORT"
 ```
 
-On Vercel, this is automatically configured via the Redis Cloud integration.
+On Vercel, Redis is automatically configured via the Redis Cloud integration.
 See: https://redis.io/docs/latest/operate/rc/cloud-integrations/vercel/
 

@@ -27,8 +27,21 @@ interface TradeRecord {
   createdAt: string
 }
 
-// POST /api/trades - Record a new trade
+// POST /api/trades - Record a new trade (requires API key)
 export async function POST(req: Request) {
+  // API Key validation
+  const apiKey = req.headers.get('x-api-key')
+  const expectedKey = process.env.TRADES_API_KEY
+  
+  if (!expectedKey) {
+    console.warn('[Trade API] TRADES_API_KEY not configured - API is open')
+  } else if (apiKey !== expectedKey) {
+    return NextResponse.json(
+      { error: 'Unauthorized - invalid or missing API key' },
+      { status: 401 }
+    )
+  }
+
   try {
     const body = await req.json()
     
