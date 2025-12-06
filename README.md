@@ -325,7 +325,7 @@ forge install
 
 ### Environment Variables
 
-Create a `.env` file in the project root:
+Create a `.env.local` file in the project root (copy from `.env.example`):
 
 ```bash
 # Required for contract deployment
@@ -334,9 +334,17 @@ PRIVATE_KEY=your_deployer_private_key
 # MemeCore RPC
 MEMECORE_RPC_URL=https://rpc.insectarium.memecore.net
 
+# Trade API authentication (for AI agent trade recording)
+TRADES_API_KEY=your_secret_api_key
+
+# Redis Cloud persistence (for trade/performance data)
+REDIS_URL=redis://default:password@host:port
+
 # Optional: Block explorer API
 MEMECORESCAN_API_KEY=your_api_key
 ```
+
+> **Note**: `TRADES_API_KEY` and `REDIS_URL` are required for production. Contact the project owner for access.
 
 ### Development
 
@@ -525,14 +533,17 @@ graph TB
 ```
 memepulse/
 ├── app/                    # Next.js app router pages
+│   └── api/                # API routes (trades, performance, rpc proxy)
 ├── components/             # React components
 │   ├── ui/                 # Radix UI primitives
 │   └── modals/             # Modal dialogs
 ├── contracts/              # Solidity smart contracts
-│   └── CONTRACT_INTEGRATION.md  # Agent integration guide
+│   ├── CONTRACT_INTEGRATION.md   # Agent on-chain integration guide
+│   └── TRADE_API_INTEGRATION.md  # Dashboard API integration guide
 ├── hooks/                  # React hooks (contract interactions)
 ├── lib/                    # Utilities and configurations
 │   ├── contracts.ts        # Central contract registry
+│   ├── redis.ts            # Redis Cloud client
 │   └── store/              # Zustand stores
 ├── script/                 # Foundry deployment scripts
 ├── test/                   # Foundry test suite

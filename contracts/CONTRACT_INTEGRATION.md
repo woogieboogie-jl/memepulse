@@ -451,6 +451,41 @@ console.log('PEPE agent count:', count);
 
 ---
 
+## 10. Dashboard Integration (Trade API)
+
+In addition to on-chain oracle updates, agents should record trades to the dashboard API for performance tracking and leaderboards.
+
+**See**: [TRADE_API_INTEGRATION.md](./TRADE_API_INTEGRATION.md) for full details.
+
+**Quick Example:**
+```typescript
+// After submitting oracle update, record trade for dashboard
+await fetch('https://memepulse-iota.vercel.app/api/trades', {
+  method: 'POST',
+  headers: { 
+    'Content-Type': 'application/json',
+    'x-api-key': process.env.TRADES_API_KEY  // Required
+  },
+  body: JSON.stringify({
+    agent: agentAccount.address,
+    feedSymbol: 'DOGE',
+    price: Number(report.price),
+    volume: report.volume.toString(),
+    isLong: report.isLong,
+    leverage: report.leverage,
+    timestamp: Number(report.timestamp),
+    pnlUsd: orderlyResult.realizedPnl  // From Orderly response
+  })
+});
+```
+
+This enables:
+- Agent performance charts
+- Leaderboard rankings
+- P&L tracking across epochs
+
+---
+
 ## Need Help?
 
 - **Discord**: [MemePulse Community]
