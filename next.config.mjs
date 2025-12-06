@@ -6,7 +6,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Webpack config for web3 packages
+  // Empty turbopack config to silence dev mode warning
+  turbopack: {},
+  // Webpack config for production build (web3 packages need this)
   webpack: (config) => {
     config.resolve.fallback = { 
       fs: false, 
