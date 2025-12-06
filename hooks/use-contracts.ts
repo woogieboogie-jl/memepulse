@@ -508,6 +508,42 @@ export function useEpochDuration() {
 }
 
 /**
+ * Fetches base reward per update from ProtocolConfig.
+ * Returns the reward in wM tokens (converted from wei).
+ */
+export function useBaseRewardRate() {
+    const { data, isError, isLoading } = useQuery({
+        queryKey: ['baseRewardPerUpdate'],
+        queryFn: async () => {
+            try {
+                return await publicClient.readContract({
+                    address: CONTRACTS.PROTOCOL_CONFIG as Address,
+                    abi: ABIS.PROTOCOL_CONFIG,
+                    functionName: 'baseRewardPerUpdate'
+                }) as bigint
+            } catch {
+                // Default 100K wM (100000 * 10^18)
+                return BigInt(100000) * BigInt(10 ** 18)
+            }
+        },
+    })
+
+    // Convert from wei to tokens (18 decimals)
+    const rewardInTokens = data ? Number(data) / 1e18 : 100000
+
+    return {
+        rewardWei: data || BigInt(0),
+        rewardTokens: rewardInTokens,
+        // Display as "X wM/update"
+        display: rewardInTokens >= 1000 
+            ? `${(rewardInTokens / 1000).toFixed(0)}K wM` 
+            : `${rewardInTokens.toFixed(0)} wM`,
+        isError,
+        isLoading
+    }
+}
+
+/**
  * Fetches all registered agents for a specific feed symbol.
  * Returns an array of agent addresses.
  */

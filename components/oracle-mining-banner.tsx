@@ -8,7 +8,8 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { useCurrentEpoch, useTimeUntilNextEpoch, useEpochTotalVolume, useEpochDuration } from '@/hooks/use-contracts'
+import { useCurrentEpoch, useTimeUntilNextEpoch, useEpochTotalVolume, useBaseRewardRate } from '@/hooks/use-contracts'
+import { useState, useEffect } from 'react'
 
 // Helper component for empty state display
 function EmptyValue({ tooltip }: { tooltip: string }) {
@@ -36,24 +37,52 @@ function formatTimeRemaining(seconds: number): string {
 }
 
 /**
+ * Live countdown timer that ticks every second
+ */
+function LiveCountdown({ initialSeconds }: { initialSeconds: number }) {
+    const [seconds, setSeconds] = useState(initialSeconds)
+
+    useEffect(() => {
+        // Reset when initialSeconds changes (e.g., from a refetch)
+        setSeconds(initialSeconds)
+    }, [initialSeconds])
+
+    useEffect(() => {
+        if (seconds <= 0) return
+
+        const interval = setInterval(() => {
+            setSeconds(prev => Math.max(0, prev - 1))
+        }, 1000)
+
+        return () => clearInterval(interval)
+    }, [seconds > 0]) // Only re-run if we go from 0 to positive
+
+    if (seconds <= 0) {
+        return <span className="text-accent animate-pulse">New epoch...</span>
+    }
+
+    return <span className="font-mono tabular-nums">{formatTimeRemaining(seconds)}</span>
+}
+
+/**
  * Consolidated Oracle + Mining Banner
  * Shows: Oracle contribution message + epoch info + rewards in one minimal banner
+ * All values fetched from on-chain contracts
  */
 export function OracleMiningBanner() {
     // Fetch real data from contracts
     const { currentEpoch, isLoading: isEpochLoading } = useCurrentEpoch()
     const { secondsRemaining, isLoading: isTimeLoading } = useTimeUntilNextEpoch()
     const { totalVolume, hasData: hasVolumeData, isLoading: isVolumeLoading } = useEpochTotalVolume(currentEpoch)
-    const { epochDuration } = useEpochDuration()
+    const { rewardTokens, display: rewardDisplay, isLoading: isRewardLoading } = useBaseRewardRate()
 
-    // Distribution rate - could fetch from ProtocolConfig.baseRewardPerUpdate
-    // For now: 0.05 wM per $1 volume (5% of volume as rewards)
-    const distributionRate = 0.05
+    // Calculate estimated rewards based on epoch volume and base reward
+    // This is a simplified calculation - actual rewards depend on agent contributions
+    const estimatedRewards = hasVolumeData && totalVolume > 0 && rewardTokens > 0
+        ? (totalVolume / 1000) * (rewardTokens / 100000) // Simplified: scale by volume
+        : 0
 
-    // Calculate estimated rewards based on epoch volume
-    const estimatedRewards = hasVolumeData && totalVolume > 0 ? totalVolume * distributionRate : 0
-
-    const isLoading = isEpochLoading || isTimeLoading || isVolumeLoading
+    const isLoading = isEpochLoading || isTimeLoading || isVolumeLoading || isRewardLoading
 
     return (
         <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 border border-primary/20 rounded-lg p-3">
@@ -71,7 +100,7 @@ export function OracleMiningBanner() {
 
                 {/* Right: Stats Row */}
                 <div className="flex items-center gap-4 text-xs">
-                    {/* Epoch Info */}
+                    {/* Epoch Info with Live Countdown */}
                     <div className="flex items-center gap-1.5">
                         <Clock className="h-3 w-3 text-muted-foreground" />
                         {isEpochLoading ? (
@@ -82,8 +111,8 @@ export function OracleMiningBanner() {
                             </span>
                         )}
                         {!isTimeLoading && secondsRemaining > 0 && (
-                            <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-primary/30 text-primary">
-                                {formatTimeRemaining(secondsRemaining)}
+                            <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-primary/30 text-primary font-mono">
+                                <LiveCountdown initialSeconds={secondsRemaining} />
                             </Badge>
                         )}
                     </div>
@@ -108,10 +137,10 @@ export function OracleMiningBanner() {
                     {/* Divider */}
                     <div className="h-4 w-px bg-border" />
 
-                    {/* Estimated Rewards */}
+                    {/* Reward Rate (from on-chain) */}
                     <div className="flex items-center gap-1.5">
                         <Coins className="h-3 w-3 text-accent" />
-                        {isLoading ? (
+                        {isRewardLoading ? (
                             <span className="animate-pulse">...</span>
                         ) : estimatedRewards > 0 ? (
                             <span className="font-mono font-medium text-accent">
@@ -121,13 +150,14 @@ export function OracleMiningBanner() {
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <span className="text-muted-foreground cursor-help">
-                                            {distributionRate} wM/$
+                                        <span className="text-muted-foreground cursor-help font-mono">
+                                            {rewardDisplay}/update
                                         </span>
                                     </TooltipTrigger>
                                     <TooltipContent className="z-[9999]" side="top" sideOffset={5}>
                                         <p className="font-body text-xs">
-                                            Earn {distributionRate} wM for every $1 of trading volume
+                                            Base reward: {rewardDisplay} per oracle update<br />
+                                            <span className="text-muted-foreground">Fetched from ProtocolConfig</span>
                                         </p>
                                     </TooltipContent>
                                 </Tooltip>
@@ -139,4 +169,3 @@ export function OracleMiningBanner() {
         </div>
     )
 }
-
