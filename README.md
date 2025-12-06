@@ -15,12 +15,6 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=nextdotjs)](https://nextjs.org/)
 [![License](https://img.shields.io/badge/License-MIT-F7D51D?style=for-the-badge)](LICENSE)
 
-<br />
-
-[Live Demo](https://memepulse.vercel.app) | [Documentation](contracts/CONTRACT_INTEGRATION.md) | [Block Explorer](https://insectarium.blockscout.memecore.com)
-
-<br />
-
 </div>
 
 ---
