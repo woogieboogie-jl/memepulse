@@ -20,36 +20,27 @@ const shareTechMono = Share_Tech_Mono({
 })
 
 const interTight = Inter_Tight({
-  subsets: ["latin"],
+  subsets: ['latin'],
   variable: '--font-inter-tight',
   display: 'swap',
-});
+})
 
 export const metadata: Metadata = {
-  title: "MemePulse - Gamified AI Trading",
+  title: 'MemePulse - Gamified AI Trading',
   description: 'Deploy AI agents, mine $M, and dominate the meme economy.',
   generator: 'v0.app',
   icons: {
     icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
+      { url: '/icon-light-32x32.png', media: '(prefers-color-scheme: light)' },
+      { url: '/icon-dark-32x32.png', media: '(prefers-color-scheme: dark)' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
     ],
     apple: '/apple-icon.png',
   },
 }
 
 import { Providers } from '@/components/providers'
-import { GlobalTicker } from '@/components/global-ticker'
+import { GlobalTickerNew } from '@/components/global-ticker-new'
 import { Footer } from '@/components/footer'
 
 export default function RootLayout({
@@ -58,7 +49,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${interTight.variable} ${pressStart2P.variable} ${shareTechMono.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${interTight.variable} ${pressStart2P.variable} ${shareTechMono.variable}`}
+    >
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -103,11 +98,9 @@ export default function RootLayout({
             enableSystem={false}
             disableTransitionOnChange
           >
-            <GlobalTicker />
+            <GlobalTickerNew />
             <div className="flex flex-col min-h-screen font-mono">
-              <div className="flex-1">
-                {children}
-              </div>
+              <div className="flex-1">{children}</div>
               <Footer />
             </div>
             <DemoControlPanel />
