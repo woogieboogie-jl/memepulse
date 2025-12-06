@@ -123,15 +123,15 @@ export default function TradePage() {
               </div>
               <div className="flex items-center gap-2">
                 <PulseMonitor />
-                <Badge variant="outline" className="text-[10px] sm:text-xs">
-                  Demo Mode
+                <Badge variant="outline" className="text-[10px] sm:text-xs bg-yellow-500/10 border-yellow-500/30 text-yellow-600 dark:text-yellow-400">
+                  SIMULATION
                 </Badge>
               </div>
             </div>
 
-            {/* Oracle + Mining Banner (Consolidated) */}
+            {/* Oracle + Mining Banner (Consolidated) - Pass selected asset */}
             <div className="mt-4">
-              <OracleMiningBanner />
+              <OracleMiningBanner selectedFeed={selectedAsset} />
             </div>
           </div>
         </div>

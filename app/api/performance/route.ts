@@ -1,20 +1,25 @@
 import { NextResponse } from 'next/server'
+import { kv } from '@vercel/kv'
 
 /**
  * Agent Performance API
- * 
- * Returns performance data for the Agent Performance Comparison chart.
- * Combines:
- * - Trade P&L data (from /api/trades)
- * - On-chain oracle metrics (when available)
- * 
- * GET /api/performance?agent=0x...
- * GET /api/performance?feedSymbol=DOGE
- * GET /api/performance (all agents)
+ * Reads from Vercel KV (or memory fallback) and aggregates for chart.
  */
 
-// Shared store reference (in production, this would be a database)
-// For hackathon, we import from a shared module or reconstruct from trades
+interface TradeRecord {
+  id: string
+  agent: string
+  feedSymbol: string
+  price: number
+  volume: number
+  isLong: boolean
+  leverage: number
+  timestamp: number
+  orderlyTxHash: string
+  pnlUsd: number
+  createdAt: string
+}
+
 interface PerformancePoint {
   timestamp: number
   accountValue: number
@@ -34,20 +39,40 @@ interface AgentPerformance {
   dataPoints: PerformancePoint[]
 }
 
-// GET /api/performance
+const isKVConfigured = () => {
+  return process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const agentFilter = searchParams.get('agent')?.toLowerCase()
   const feedFilter = searchParams.get('feedSymbol')?.toUpperCase()
-  const timeRange = searchParams.get('range') || '7d' // 24h, 72h, 7d, 30d, all
+  const timeRange = searchParams.get('range') || '7d'
 
   try {
-    // Fetch trades from our trades API (internal call)
-    const tradesRes = await fetch(new URL('/api/trades', req.url).toString())
-    const { trades } = await tradesRes.json()
+    // Fetch trades
+    let trades: TradeRecord[] = []
+
+    if (isKVConfigured()) {
+      const raw = await kv.lrange('trades', 0, 4999) // Last 5000 trades
+      trades = raw.map((item: any) => typeof item === 'string' ? JSON.parse(item) : item)
+    } else {
+      // Fetch from our own API (will use local memory)
+      const tradesRes = await fetch(new URL('/api/trades?limit=5000', req.url).toString())
+      const data = await tradesRes.json()
+      trades = data.trades || []
+    }
+
+    if (trades.length === 0) {
+      return NextResponse.json({
+        performances: [],
+        message: 'No trading data yet. Performance will appear once agents start trading.',
+        hasData: false
+      })
+    }
 
     // Group trades by agent
-    const agentTrades: Map<string, typeof trades> = new Map()
+    const agentTrades: Map<string, TradeRecord[]> = new Map()
     
     for (const trade of trades) {
       const key = trade.agent
@@ -57,14 +82,14 @@ export async function GET(req: Request) {
       agentTrades.get(key)!.push(trade)
     }
 
-    // Build performance data for each agent
+    // Build performance data
     const performances: AgentPerformance[] = []
+    const cutoff = getCutoffTimestamp(timeRange)
 
     for (const [agent, agentTradeList] of agentTrades) {
-      // Filter by agent if specified
       if (agentFilter && agent !== agentFilter) continue
 
-      // Get the primary feed for this agent (most traded)
+      // Get primary feed
       const feedCounts: Map<string, number> = new Map()
       for (const t of agentTradeList) {
         feedCounts.set(t.feedSymbol, (feedCounts.get(t.feedSymbol) || 0) + 1)
@@ -72,103 +97,80 @@ export async function GET(req: Request) {
       const primaryFeed = [...feedCounts.entries()]
         .sort((a, b) => b[1] - a[1])[0]?.[0] || 'UNKNOWN'
 
-      // Filter by feed if specified
       if (feedFilter && primaryFeed !== feedFilter) continue
 
-      // Calculate performance metrics
-      const sortedTrades = agentTradeList.sort((a: any, b: any) => a.timestamp - b.timestamp)
-      
-      let accountValue = 10000 // Starting capital
+      // Filter by time and sort
+      const filteredTrades = agentTradeList
+        .filter(t => t.timestamp >= cutoff)
+        .sort((a, b) => a.timestamp - b.timestamp)
+
+      if (filteredTrades.length === 0) continue
+
+      // Calculate performance
+      let accountValue = 10000
       let totalPnl = 0
       let wins = 0
       const dataPoints: PerformancePoint[] = []
 
       // Add starting point
-      if (sortedTrades.length > 0) {
-        dataPoints.push({
-          timestamp: sortedTrades[0].timestamp - 86400, // Day before first trade
-          accountValue: 10000,
-          pnl: 0
-        })
-      }
+      dataPoints.push({
+        timestamp: filteredTrades[0].timestamp - 3600,
+        accountValue: 10000,
+        pnl: 0
+      })
 
-      for (const trade of sortedTrades) {
+      for (const trade of filteredTrades) {
         totalPnl += trade.pnlUsd
         accountValue += trade.pnlUsd
         if (trade.pnlUsd > 0) wins++
 
         dataPoints.push({
           timestamp: trade.timestamp,
-          accountValue,
+          accountValue: Math.max(accountValue, 0),
           pnl: trade.pnlUsd
         })
       }
 
-      const winRate = sortedTrades.length > 0 
-        ? (wins / sortedTrades.length) * 100 
-        : 0
-
       performances.push({
         agent,
         feedSymbol: primaryFeed,
-        name: `${primaryFeed} Agent #${performances.length + 1}`,
+        name: `${primaryFeed} Agent`,
         currentValue: accountValue,
         totalPnl,
         pnlPercent: ((accountValue - 10000) / 10000) * 100,
-        tradeCount: sortedTrades.length,
-        winRate,
-        mTokensEarned: 0, // TODO: Fetch from MTokenDistributor
-        dataPoints: filterByTimeRange(dataPoints, timeRange)
+        tradeCount: filteredTrades.length,
+        winRate: filteredTrades.length > 0 ? (wins / filteredTrades.length) * 100 : 0,
+        mTokensEarned: 0,
+        dataPoints
       })
     }
 
-    // If no real data, return placeholder structure
-    if (performances.length === 0) {
-      return NextResponse.json({
-        performances: [],
-        message: 'No trading data yet. Performance will appear once agents start trading.',
-        hasData: false
-      })
-    }
+    // Sort by P&L
+    performances.sort((a, b) => b.totalPnl - a.totalPnl)
 
     return NextResponse.json({
-      performances,
-      hasData: true,
-      totalAgents: performances.length
+      performances: performances.slice(0, 10), // Top 10
+      hasData: performances.length > 0,
+      totalAgents: performances.length,
+      storage: isKVConfigured() ? 'kv' : 'memory'
     })
 
   } catch (error) {
-    console.error('[API] Performance fetch error:', error)
+    console.error('[Performance API] Error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch performance data', details: (error as Error).message },
+      { error: 'Failed to fetch performance', details: (error as Error).message },
       { status: 500 }
     )
   }
 }
 
-// Helper: Filter data points by time range
-function filterByTimeRange(points: PerformancePoint[], range: string): PerformancePoint[] {
+function getCutoffTimestamp(range: string): number {
   const now = Math.floor(Date.now() / 1000)
-  let cutoff: number
-
   switch (range) {
-    case '24h':
-      cutoff = now - 24 * 60 * 60
-      break
-    case '72h':
-      cutoff = now - 72 * 60 * 60
-      break
-    case '7d':
-      cutoff = now - 7 * 24 * 60 * 60
-      break
-    case '30d':
-      cutoff = now - 30 * 24 * 60 * 60
-      break
-    case 'all':
-    default:
-      return points
+    case '24h': return now - 24 * 3600
+    case '72h': return now - 72 * 3600
+    case '7d': return now - 7 * 24 * 3600
+    case '30d': return now - 30 * 24 * 3600
+    default: return 0
   }
-
-  return points.filter(p => p.timestamp >= cutoff)
 }
-

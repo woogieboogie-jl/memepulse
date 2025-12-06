@@ -8,8 +8,9 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { useCurrentEpoch, useTimeUntilNextEpoch, useEpochTotalVolume, useBaseRewardRate } from '@/hooks/use-contracts'
+import { useCurrentEpoch, useTimeUntilNextEpoch, useEpochTotalVolume, useBaseRewardRate, useFeedRewardMultiplier } from '@/hooks/use-contracts'
 import { useState, useEffect } from 'react'
+import { Zap } from 'lucide-react'
 
 // Helper component for empty state display
 function EmptyValue({ tooltip }: { tooltip: string }) {
@@ -64,38 +65,71 @@ function LiveCountdown({ initialSeconds }: { initialSeconds: number }) {
     return <span className="font-mono tabular-nums">{formatTimeRemaining(seconds)}</span>
 }
 
+interface OracleMiningBannerProps {
+    selectedFeed?: string // e.g., "DOGE" extracted from "DOGE-PERP"
+}
+
 /**
  * Consolidated Oracle + Mining Banner
  * Shows: Oracle contribution message + epoch info + rewards in one minimal banner
  * All values fetched from on-chain contracts
  */
-export function OracleMiningBanner() {
+export function OracleMiningBanner({ selectedFeed }: OracleMiningBannerProps) {
+    // Extract symbol from perp format (e.g., "DOGE-PERP" -> "DOGE")
+    const feedSymbol = selectedFeed?.replace('-PERP', '') || 'DOGE'
+    
     // Fetch real data from contracts
     const { currentEpoch, isLoading: isEpochLoading } = useCurrentEpoch()
     const { secondsRemaining, isLoading: isTimeLoading } = useTimeUntilNextEpoch()
     const { totalVolume, hasData: hasVolumeData, isLoading: isVolumeLoading } = useEpochTotalVolume(currentEpoch)
     const { rewardTokens, display: rewardDisplay, isLoading: isRewardLoading } = useBaseRewardRate()
+    const { multiplier, multiplierDisplay, isLoading: isMultiplierLoading } = useFeedRewardMultiplier(feedSymbol)
 
     // Calculate estimated rewards based on epoch volume and base reward
-    // This is a simplified calculation - actual rewards depend on agent contributions
+    // Apply the feed-specific multiplier
     const estimatedRewards = hasVolumeData && totalVolume > 0 && rewardTokens > 0
-        ? (totalVolume / 1000) * (rewardTokens / 100000) // Simplified: scale by volume
+        ? (totalVolume / 1000) * (rewardTokens / 100000) * multiplier
         : 0
 
-    const isLoading = isEpochLoading || isTimeLoading || isVolumeLoading || isRewardLoading
+    const isLoading = isEpochLoading || isTimeLoading || isVolumeLoading || isRewardLoading || isMultiplierLoading
 
     return (
         <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 border border-primary/20 rounded-lg p-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
-                {/* Left: Oracle Message */}
+                {/* Left: Oracle Message + Selected Feed Multiplier */}
                 <div className="flex items-center gap-2 min-w-0">
                     <Activity className="h-4 w-4 text-primary flex-shrink-0" />
                     <span className="text-xs font-medium text-primary">
                         Trades power MemeCore oracles
                     </span>
-                    <span className="text-[10px] text-muted-foreground hidden sm:inline">
-                        — earn wM from foundation subsidies
-                    </span>
+                    {/* Feed Multiplier Badge */}
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Badge 
+                                    variant="outline" 
+                                    className={`text-[10px] h-5 px-1.5 cursor-help ${
+                                        multiplier > 1 
+                                            ? 'border-accent/50 text-accent bg-accent/10' 
+                                            : multiplier < 1 
+                                                ? 'border-muted-foreground/50 text-muted-foreground' 
+                                                : 'border-primary/30 text-primary'
+                                    }`}
+                                >
+                                    <Zap className="h-2.5 w-2.5 mr-0.5" />
+                                    {feedSymbol} {isMultiplierLoading ? '...' : multiplierDisplay}
+                                </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="z-[9999]" side="bottom" sideOffset={5}>
+                                <p className="font-body text-xs">
+                                    <span className="font-semibold">{feedSymbol}</span> has a <span className="text-accent font-semibold">{multiplierDisplay}</span> reward multiplier<br />
+                                    {multiplier > 1 && <span className="text-green-500">Bonus rewards for high-demand feeds!</span>}
+                                    {multiplier < 1 && <span className="text-muted-foreground">Stable asset - lower rewards</span>}
+                                    {multiplier === 1 && <span className="text-muted-foreground">Baseline reward rate</span>}
+                                </p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </div>
 
                 {/* Right: Stats Row */}
