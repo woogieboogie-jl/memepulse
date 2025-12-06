@@ -14,40 +14,41 @@ import { WalletSignaturePrompt } from '@/components/wallet-signature-prompt'
 import { useState, useEffect } from 'react'
 import { Twitter, BarChart3, Globe, Sparkles, Database, Zap, Cpu, CheckCircle2, Clock, Coins, TrendingUp, Activity } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { useConnectWallet } from '@web3-onboard/react'
+import { useAccount } from '@orderly.network/hooks'
+import { useAuth } from '@/contexts/AuthContext'
+import { agentApi, userApi, type TriggerConfig } from '@/lib/api'
 
-// Memecoin options with activity scores (mock data for demo)
+// Memecoin options with Orderly symbols
 const MEMECOINS = [
-  { symbol: 'DOGE', name: 'Dogecoin', emoji: '🐕', activityScore: 78, volume: 1250000 },
-  { symbol: 'PEPE', name: 'Pepe', emoji: '🐸', activityScore: 62, volume: 890000 },
-  { symbol: 'SHIB', name: 'Shiba Inu', emoji: '🐕‍🦺', activityScore: 45, volume: 670000 },
-  { symbol: 'FLOKI', name: 'Floki', emoji: '🐺', activityScore: 85, volume: 1560000 },
-  { symbol: 'WIF', name: 'dogwifhat', emoji: '🎩', activityScore: 71, volume: 980000 },
-  { symbol: 'BONK', name: 'Bonk', emoji: '💥', activityScore: 73, volume: 1120000 },
-  { symbol: 'BTC', name: 'Bitcoin', emoji: '₿', activityScore: 92, volume: 5800000 },
+  { symbol: 'DOGE', orderly: 'PERP_DOGE_USDC', name: 'Dogecoin', emoji: '🐕', socialScore: 78, volume: 1250000 },
+  { symbol: 'PEPE', orderly: 'PERP_PEPE_USDC', name: 'Pepe', emoji: '🐸', socialScore: 62, volume: 890000 },
+  { symbol: 'SHIB', orderly: 'PERP_SHIB_USDC', name: 'Shiba Inu', emoji: '🐕‍🦺', socialScore: 45, volume: 670000 },
+  { symbol: 'FLOKI', orderly: 'PERP_FLOKI_USDC', name: 'Floki', emoji: '🐺', socialScore: 85, volume: 1560000 },
+  { symbol: 'WIF', orderly: 'PERP_WIF_USDC', name: 'dogwifhat', emoji: '🎩', socialScore: 71, volume: 980000 },
+  { symbol: 'BONK', orderly: 'PERP_BONK_USDC', name: 'Bonk', emoji: '💥', socialScore: 73, volume: 1120000 },
+  { symbol: 'BTC', orderly: 'PERP_BTC_USDC', name: 'Bitcoin', emoji: '₿', socialScore: 92, volume: 5800000 },
 ]
 
 // PRD-Aligned Triggers (Pulse types)
 const triggers = [
-  { id: 'elon', label: 'Elon Pulse', icon: Twitter, description: 'Detects Elon Musk tweets about your memecoin', cost: 0.002 },
-  { id: 'ai', label: 'AI Pulse', icon: Cpu, description: 'AI-powered sentiment shifts & trend analysis', cost: 0.003 },
-  { id: 'trend', label: 'Trend Pulse', icon: TrendingUp, description: 'Volume spikes & price momentum patterns', cost: 0.002 },
+  { id: 'timer', label: 'Timer Pulse', icon: Clock, description: 'Agent checks market at regular intervals', cost: 0.002, intervalMs: 60000 },
+  { id: 'elon', label: 'Elon Pulse', icon: Twitter, description: 'Detects Elon Musk tweets about your memecoin', cost: 0.002, username: 'elonmusk' },
+  { id: 'ai', label: 'AI Pulse', icon: Cpu, description: 'AI-powered sentiment shifts & trend analysis', cost: 0.003, intervalMs: 180000 },
+  { id: 'trend', label: 'Trend Pulse', icon: TrendingUp, description: 'Volume spikes & price momentum patterns', cost: 0.002, intervalMs: 300000 },
 ]
 
 const contexts = [
   { id: 'market', label: 'Market Context', icon: BarChart3, description: 'Price action, indicators, order book', cost: 0.001 },
-  { id: 'social', label: 'Social Context', icon: Globe, description: 'Twitter trends, Reddit mentions, influencer activity', cost: 0.001 },
-  { id: 'onchain', label: 'On-chain Context', icon: Database, description: 'Whale movements, exchange flows, wallet activity', cost: 0.002 },
+  { id: 'social', label: 'Social Context', icon: Globe, description: 'Twitter trends, Reddit mentions, influencers', cost: 0.001, disabled: true },
+  { id: 'onchain', label: 'On-chain Context', icon: Database, description: 'Whale movements, exchange flows', cost: 0.002, disabled: true },
 ]
 
 export default function CreateAgentPage() {
   const router = useRouter()
+  const [{ wallet }] = useConnectWallet()
+  const { subAccount } = useAccount()
+  const { auth, isAuthenticated, hasOrderlyAccount } = useAuth()
 
   // State
   const [selectedMemecoin, setSelectedMemecoin] = useState<string>('')
@@ -61,31 +62,43 @@ export default function CreateAgentPage() {
   const [subAccountId, setSubAccountId] = useState<string | null>(null)
   const [isCheckingRegistration, setIsCheckingRegistration] = useState(true)
   const [showRenewalModal, setShowRenewalModal] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
 
   // Check registration
   useEffect(() => {
     const checkRegistration = async () => {
       setIsCheckingRegistration(true)
-      await new Promise(resolve => setTimeout(resolve, 500))
 
-      const isRegistered = localStorage.getItem('orderly_registered') === 'true'
-      const isKeyExpired = localStorage.getItem('orderly_key_expired') === 'true'
-
-      if (isKeyExpired) {
-        setShowRenewalModal(true)
+      if (!isAuthenticated || !auth?.token) {
         setIsCheckingRegistration(false)
         return
       }
 
-      if (!isRegistered) {
+      try {
+        const userInfo = await userApi.getMe()
+        const isKeyExpired = localStorage.getItem('orderly_key_expired') === 'true'
+
+        if (isKeyExpired) {
+          setShowRenewalModal(true)
+          setIsCheckingRegistration(false)
+          return
+        }
+
+        if (!userInfo.orderlyAccountId) {
+          router.push('/register')
+        } else {
+          localStorage.setItem('orderly_registered', 'true')
+          setIsCheckingRegistration(false)
+        }
+      } catch (err) {
+        console.error('Failed to check registration:', err)
         router.push('/register')
-      } else {
-        setIsCheckingRegistration(false)
       }
     }
 
     checkRegistration()
-  }, [router])
+  }, [isAuthenticated, auth?.token, router])
 
   const handleRenewalSuccess = () => {
     setShowRenewalModal(false)
@@ -99,17 +112,14 @@ export default function CreateAgentPage() {
     const coin = MEMECOINS.find(c => c.symbol === selectedMemecoin)
     if (!coin) return 0
 
-    // Formula: (activityScore × volume × contextMultiplier) / 100000
     const contextMultiplier = 1 + (selectedContexts.length * 0.2)
-    const apy = Math.round((coin.activityScore * (coin.volume / 10000) * contextMultiplier) / 100)
+    const apy = Math.round((coin.socialScore * (coin.volume / 10000) * contextMultiplier) / 100)
 
-    return Math.min(apy, 99) // Cap at 99%
+    return Math.min(apy, 99)
   }
 
-  // Calculate estimated $M mined per day
   const calculateDailyMining = () => {
     const apy = calculateMiningAPY()
-    // Rough estimate: 1000 USDC equity → 10 $M/day at 50% APY
     return Math.round((apy / 50) * 10)
   }
 
@@ -124,6 +134,9 @@ export default function CreateAgentPage() {
   const dailyMining = calculateDailyMining()
 
   const handleContextToggle = (contextId: string) => {
+    const context = contexts.find(c => c.id === contextId)
+    if (context?.disabled) return
+
     setSelectedContexts(prev =>
       prev.includes(contextId)
         ? prev.filter(c => c !== contextId)
@@ -132,38 +145,89 @@ export default function CreateAgentPage() {
   }
 
   const handleLaunch = async () => {
-    setShowSubAccountModal(true)
-    setIsCreatingSubAccount(true)
-
-    await new Promise(resolve => setTimeout(resolve, 2500))
-
-    const newSubAccountId = `sub_${Math.random().toString(36).substr(2, 9)}`
-    setSubAccountId(newSubAccountId)
-    setIsCreatingSubAccount(false)
-
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    // Register Agent with Backend
-    try {
-      await fetch('/api/pulse', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          symbol: selectedMemecoin,
-          price: 0,
-          volume: 0,
-          activityScore: MEMECOINS.find(c => c.symbol === selectedMemecoin)?.activityScore || 0,
-          timestamp: Math.floor(Date.now() / 1000),
-          agentName,
-          strategy
-        })
-      })
-    } catch (error) {
-      console.error('Failed to register agent:', error)
+    if (!auth?.token) {
+      setError('Not authenticated')
+      return
     }
 
-    setShowSubAccountModal(false)
-    setShowPaymentModal(true)
+    if (!agentName.trim()) {
+      setError('Agent name is required')
+      return
+    }
+
+    if (!selectedTrigger) {
+      setError('Please select a trigger')
+      return
+    }
+
+    if (selectedContexts.length === 0) {
+      setError('Please select at least one context')
+      return
+    }
+
+    if (strategy.length < 50) {
+      setError('Strategy must be at least 50 characters')
+      return
+    }
+
+    setShowSubAccountModal(true)
+    setIsCreatingSubAccount(true)
+    setError(null)
+
+    try {
+      // Create sub account using Orderly SDK
+      console.log('Creating sub account...')
+      const subAccountResult = await subAccount.create()
+      console.log('Sub account created:', subAccountResult)
+
+      if (!subAccountResult?.sub_account_id) {
+        throw new Error('Failed to create sub account')
+      }
+
+      setSubAccountId(subAccountResult.sub_account_id)
+      setIsCreatingSubAccount(false)
+
+      // Build trigger config
+      const triggerData = triggers.find(t => t.id === selectedTrigger)
+      let trigger: TriggerConfig
+
+      if (selectedTrigger === 'elon') {
+        trigger = { type: 'twitter', username: 'elonmusk' }
+      } else {
+        trigger = { type: 'timer', intervalMs: triggerData?.intervalMs || 60000 }
+      }
+
+      // Find the Orderly symbol for the selected memecoin
+      const coin = MEMECOINS.find(c => c.symbol === selectedMemecoin)
+      const orderlySymbol = coin?.orderly || 'PERP_DOGE_USDC'
+
+      // Wait a moment for UI feedback
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Create agent via backend API
+      console.log('Creating agent...')
+      setIsCreating(true)
+      const result = await agentApi.create({
+        name: agentName,
+        subAccountId: subAccountResult.sub_account_id,
+        symbol: orderlySymbol,
+        mode: 'mainnet',
+        trigger,
+        context: selectedContexts.join(','),
+        strategy,
+      })
+
+      console.log('Agent created:', result)
+
+      setShowSubAccountModal(false)
+      setShowPaymentModal(true)
+    } catch (err) {
+      console.error('Failed to create agent:', err)
+      setError(err instanceof Error ? err.message : 'Failed to create agent')
+      setShowSubAccountModal(false)
+      setIsCreatingSubAccount(false)
+      setIsCreating(false)
+    }
   }
 
   const handlePaymentSuccess = () => {
@@ -172,6 +236,7 @@ export default function CreateAgentPage() {
 
   const isValid = selectedMemecoin && agentName && selectedTrigger && selectedContexts.length > 0 && strategy.length >= 50
 
+  // Loading state
   if (isCheckingRegistration) {
     return (
       <div className="min-h-screen bg-background/80 backdrop-blur-sm">
@@ -190,6 +255,28 @@ export default function CreateAgentPage() {
     )
   }
 
+  // Not authenticated state
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background">
+        <NavHeader />
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-2xl mx-auto text-center">
+            <h1 className="text-3xl font-bold mb-4">Connect Your Wallet</h1>
+            <p className="text-muted-foreground mb-8">
+              Please connect your wallet to create an AI trading agent.
+            </p>
+            <div className="p-6 bg-primary/10 border border-primary/20 rounded-lg">
+              <p className="text-sm text-primary">
+                Click "Connect Wallet" in the top right corner to get started.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <NavHeader />
@@ -199,13 +286,19 @@ export default function CreateAgentPage() {
           <div className="mb-4">
             <h1 className="text-3xl font-bold font-pixel">Create Memecoin Pulse Agent</h1>
             <p className="text-sm text-muted-foreground">
-              Deploy an AI agent that trades and mines $M tokens via oracle contributions
+              Deploy an AI agent that monitors social pulse and mines $M tokens
             </p>
           </div>
 
+          {error && (
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <p className="text-sm text-red-400">{error}</p>
+            </div>
+          )}
+
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
-              {/* STEP 1: Memecoin Selection - NEW! */}
+              {/* STEP 1: Memecoin Selection */}
               <Card className="border-2 border-primary/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -234,7 +327,7 @@ export default function CreateAgentPage() {
                           <div className="text-sm font-medium">{coin.symbol}</div>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Activity className="h-3 w-3" />
-                            {coin.activityScore}
+                            {coin.socialScore}
                           </div>
                         </button>
                       )
@@ -276,7 +369,7 @@ export default function CreateAgentPage() {
                     <CardDescription>What triggers should wake up your agent?</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                       {triggers.map((trigger) => {
                         const Icon = trigger.icon
                         const isSelected = selectedTrigger === trigger.id
@@ -317,13 +410,17 @@ export default function CreateAgentPage() {
                       {contexts.map((context) => {
                         const Icon = context.icon
                         const isSelected = selectedContexts.includes(context.id)
+                        const isDisabled = context.disabled
                         return (
                           <button
                             key={context.id}
                             onClick={() => handleContextToggle(context.id)}
-                            className={`flex flex-col items-start gap-2 rounded-lg border-2 p-4 text-left transition-all ${isSelected
-                              ? 'border-accent bg-accent/5'
-                              : 'border-border hover:border-accent/50'
+                            disabled={isDisabled}
+                            className={`relative flex flex-col items-start gap-2 rounded-lg border-2 p-4 text-left transition-all ${isDisabled
+                              ? 'border-border opacity-40 cursor-not-allowed'
+                              : isSelected
+                                ? 'border-accent bg-accent/5'
+                                : 'border-border hover:border-accent/50'
                               }`}
                           >
                             <Icon className={`h-5 w-5 ${isSelected ? 'text-accent' : 'text-muted-foreground'}`} />
@@ -331,6 +428,11 @@ export default function CreateAgentPage() {
                               <div className="font-medium text-sm">{context.label}</div>
                               <div className="text-xs text-muted-foreground">{context.description}</div>
                             </div>
+                            {isDisabled && (
+                              <span className="absolute top-2 left-2 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                Coming Soon
+                              </span>
+                            )}
                           </button>
                         )
                       })}
@@ -351,10 +453,11 @@ export default function CreateAgentPage() {
                   </CardHeader>
                   <CardContent>
                     <Textarea
-                      placeholder={`e.g., When ${selectedMemecoin} price momentum spikes and volume increases 50%, execute long with 3x leverage. Monitor whale wallets and exit if sentiment drops...`}
+                      placeholder={`e.g., When ${selectedMemecoin} social pulse spikes above 80 and volume increases 50%, execute long with 3x leverage. Monitor whale wallets and exit if sentiment drops below 60...`}
                       className="min-h-[160px] text-base"
                       value={strategy}
                       onChange={(e) => setStrategy(e.target.value)}
+                      maxLength={500}
                     />
                     <div className="mt-2 flex items-center justify-between text-xs">
                       <span className={strategy.length >= 50 ? 'text-accent' : 'text-muted-foreground'}>
@@ -377,7 +480,7 @@ export default function CreateAgentPage() {
                     <CardTitle>Cost & Mining Summary</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    {/* Mining APY Estimator - NEW! */}
+                    {/* Mining APY Estimator */}
                     {selectedMemecoin && (
                       <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
@@ -395,7 +498,7 @@ export default function CreateAgentPage() {
                           </div>
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-2">
-                          Based on {selectedMemecoin} activity & volume
+                          Based on {selectedMemecoin} Social Pulse & volume
                         </p>
                       </div>
                     )}
@@ -427,10 +530,10 @@ export default function CreateAgentPage() {
                     <Button
                       className="w-full"
                       size="lg"
-                      disabled={!isValid}
+                      disabled={!isValid || isCreating}
                       onClick={handleLaunch}
                     >
-                      Deploy Agent
+                      {isCreating ? 'Creating...' : 'Deploy Agent'}
                     </Button>
 
                     {!isValid && (
@@ -444,7 +547,7 @@ export default function CreateAgentPage() {
             </div>
           </div>
 
-          {/* What Happens Next - Oracle Registration Flow */}
+          {/* What Happens Next */}
           {isValid && (
             <Card className="mt-6 border-primary/50 bg-primary/5">
               <CardHeader>

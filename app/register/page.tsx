@@ -9,9 +9,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2, Key, Shield, AlertCircle, ArrowLeft } from 'lucide-react'
 import { WalletSignaturePrompt } from '@/components/wallet-signature-prompt'
+import { useConnectWallet } from '@web3-onboard/react'
+import { useAccount } from '@orderly.network/hooks'
+import { useAuth } from '@/contexts/AuthContext'
+import { userApi } from '@/lib/api'
 
-// Simulated account status enum (matches real Orderly)
+// Orderly account status enum
 enum AccountStatus {
+    EnableTradingWithoutConnected = -1,
     NotConnected = 0,
     Connected = 1,
     NotSignedIn = 2,
@@ -21,6 +26,11 @@ enum AccountStatus {
 }
 
 const STATUS_INFO = {
+    [AccountStatus.EnableTradingWithoutConnected]: {
+        label: 'Trading Enabled (No Connection)',
+        description: 'Trading enabled without connection',
+        color: 'bg-green-500',
+    },
     [AccountStatus.NotConnected]: {
         label: 'Not Connected',
         description: 'Wallet needs to be connected to Orderly',
@@ -60,59 +70,136 @@ function RegisterContent() {
     const searchParams = useSearchParams()
     const isRenewalMode = searchParams.get('mode') === 'renew'
 
-    const [currentStatus, setCurrentStatus] = useState<AccountStatus>(AccountStatus.Connected)
-    const [step, setStep] = useState<RegistrationStep>('idle')
-    const [isExpiredKey, setIsExpiredKey] = useState(false)
+    const [{ wallet }] = useConnectWallet()
+    const { account, state } = useAccount()
+    const { auth, isAuthenticated } = useAuth()
 
-    // Simulate checking if user has expired key
+    const address = wallet?.accounts?.[0]?.address
+
+    const [step, setStep] = useState<RegistrationStep>('idle')
+    const [error, setError] = useState<string | null>(null)
+
+    const currentStatus = state?.status ?? AccountStatus.NotConnected
+    const isFullyRegistered = currentStatus === AccountStatus.EnableTrading
+
+    // Redirect if already registered and backend has keys
     useEffect(() => {
-        const hasExpiredKey = localStorage.getItem('orderly_key_expired') === 'true'
-        if (hasExpiredKey || isRenewalMode) {
-            setCurrentStatus(AccountStatus.DisabledTrading)
-            setIsExpiredKey(true)
+        const checkRegistration = async () => {
+            if (!isFullyRegistered || !auth?.token) return
+
+            try {
+                const userInfo = await userApi.getMe()
+                if (userInfo.orderlyAccountId) {
+                    console.log('Already registered with Orderly, redirecting to create agent')
+                    router.push('/create')
+                }
+            } catch (err) {
+                console.error('Failed to check registration:', err)
+            }
         }
-    }, [isRenewalMode])
+
+        checkRegistration()
+    }, [isFullyRegistered, auth?.token, router])
 
     const handleCreateAccount = async () => {
+        if (!address || !account) {
+            setError('Wallet not connected')
+            return
+        }
+
         setStep('creating-account')
+        setError(null)
 
-        // Simulate wallet signature delay
-        await new Promise(resolve => setTimeout(resolve, 2500))
+        try {
+            console.log('Step 1: Creating Orderly account...')
+            await account.createAccount()
+            console.log('Account created')
 
-        setCurrentStatus(AccountStatus.SignedIn)
-        setStep('account-created')
+            setStep('account-created')
+        } catch (err) {
+            console.error('Failed to create account:', err)
+            setError(err instanceof Error ? err.message : 'Failed to create account')
+            setStep('idle')
+        }
     }
 
     const handleCreateKey = async () => {
+        if (!address || !account) {
+            setError('Wallet not connected')
+            return
+        }
+
         setStep('creating-key')
+        setError(null)
 
-        // Simulate wallet signature delay
-        await new Promise(resolve => setTimeout(resolve, 2500))
+        try {
+            console.log('Creating/renewing Orderly trading key...')
+            const keyResult = await account.createOrderlyKey(365)
+            console.log('Orderly key created:', keyResult)
 
-        // Auto-proceed to save
-        setStep('saving')
-        await new Promise(resolve => setTimeout(resolve, 1000))
+            // Get the stored key pair from keyStore
+            const storedKeyPair = account.keyStore.getOrderlyKey(address)
+            console.log('Stored key pair:', storedKeyPair)
 
-        setStep('complete')
-        setCurrentStatus(AccountStatus.EnableTrading)
+            if (!storedKeyPair) {
+                throw new Error('Failed to retrieve stored key pair')
+            }
 
-        // Clear expired key flag and mark as registered
-        localStorage.removeItem('orderly_key_expired')
-        localStorage.setItem('orderly_registered', 'true')
+            const publicKey = keyResult.data?.orderly_key ?? keyResult.orderly_key
+            const secretKey = storedKeyPair.secretKey
 
-        // Dispatch event to update other components
-        window.dispatchEvent(new Event('localStorageChange'))
+            // Save keys to backend
+            setStep('saving')
+            console.log('Saving keys to backend...')
+            await userApi.registerOrderlyKey({
+                accountId: account.accountId!,
+                publicKey,
+                secretKey,
+            })
+            console.log('Keys saved to backend')
 
-        await new Promise(resolve => setTimeout(resolve, 1500))
+            // Mark as registered
+            localStorage.setItem('orderly_registered', 'true')
+            localStorage.removeItem('orderly_key_expired')
+            window.dispatchEvent(new Event('localStorageChange'))
 
-        // Redirect to intended page or default to /create
-        const redirectTo = searchParams.get('redirect') || '/create'
-        router.push(redirectTo)
+            setStep('complete')
+
+            // Redirect after a short delay
+            setTimeout(() => {
+                const redirectTo = searchParams.get('redirect') || '/create'
+                router.push(redirectTo)
+            }, 1500)
+        } catch (err) {
+            console.error('Failed to create key:', err)
+            setError(err instanceof Error ? err.message : 'Failed to create trading key')
+            setStep('idle')
+        }
     }
 
     const needsAccountCreation = !isRenewalMode && currentStatus <= AccountStatus.NotSignedIn
     const needsKeyCreation = isRenewalMode || currentStatus === AccountStatus.SignedIn || currentStatus === AccountStatus.DisabledTrading
     const isProcessing = step !== 'idle' && step !== 'account-created' && step !== 'complete'
+    const isKeyExpired = currentStatus === AccountStatus.DisabledTrading || isRenewalMode
+
+    // Show connect wallet message if not connected
+    if (!isAuthenticated) {
+        return (
+            <div className="min-h-screen bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+                <Card className="w-full max-w-md">
+                    <CardHeader>
+                        <CardTitle>Connect Wallet</CardTitle>
+                        <CardDescription>Please connect your wallet to register with Orderly</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground">
+                            Click "Connect Wallet" in the navigation to get started.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
 
     return (
         <div className="min-h-screen bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -143,22 +230,33 @@ function RegisterContent() {
                 </CardHeader>
 
                 <CardContent className="space-y-6">
+                    {/* Error Display */}
+                    {error && (
+                        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-start gap-3">
+                            <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-sm font-medium text-destructive">Error</p>
+                                <p className="text-xs text-muted-foreground mt-1">{error}</p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Current Status */}
                     <div className="bg-muted/50 border border-border rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-medium text-muted-foreground">Current Status</span>
                             <Badge variant="outline" className="gap-2">
-                                <div className={`h-2 w-2 rounded-full ${STATUS_INFO[currentStatus].color}`} />
-                                {STATUS_INFO[currentStatus].label}
+                                <div className={`h-2 w-2 rounded-full ${STATUS_INFO[currentStatus]?.color || 'bg-gray-500'}`} />
+                                {STATUS_INFO[currentStatus]?.label || 'Unknown'}
                             </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            {STATUS_INFO[currentStatus].description}
+                            {STATUS_INFO[currentStatus]?.description || 'Unknown status'}
                         </p>
                     </div>
 
-                    {/* Expired Key Warning - Friendly Version for Renewal */}
-                    {isExpiredKey && step === 'idle' && (
+                    {/* Expired Key Warning */}
+                    {isKeyExpired && step === 'idle' && (
                         <div className={`border rounded-lg p-4 flex items-start gap-3 ${isRenewalMode
                             ? 'bg-orange-500/10 border-orange-500/20'
                             : 'bg-destructive/10 border-destructive/20'
@@ -188,7 +286,7 @@ function RegisterContent() {
                                 </div>
                                 <div>
                                     <h3 className="font-medium text-green-700 dark:text-green-400">Orderly Account Active</h3>
-                                    <p className="text-xs text-muted-foreground">Account ID: 0x71C...9A21</p>
+                                    <p className="text-xs text-muted-foreground">Account ID: {account.accountId?.slice(0, 10)}...</p>
                                 </div>
                             </div>
                             <Badge variant="outline" className="border-green-500/30 text-green-600 bg-green-500/5">
@@ -208,7 +306,7 @@ function RegisterContent() {
                                 <p className="text-sm text-muted-foreground mb-3">
                                     First, we'll create your Orderly account on-chain. This requires one wallet signature.
                                 </p>
-                                <Button onClick={handleCreateAccount} className="w-full" size="lg">
+                                <Button onClick={handleCreateAccount} className="w-full" size="lg" disabled={isProcessing}>
                                     <Key className="mr-2 h-4 w-4" />
                                     Create Account
                                 </Button>
@@ -258,10 +356,10 @@ function RegisterContent() {
                                 </h3>
                                 <p className="text-sm text-muted-foreground mb-3">
                                     {isRenewalMode
-                                        ? 'Sign to generate a new trading key valid for 30 days.'
+                                        ? 'Sign to generate a new trading key valid for 365 days.'
                                         : 'Now create a trading key to enable API access.'}
                                 </p>
-                                <Button onClick={handleCreateKey} className="w-full" size="lg">
+                                <Button onClick={handleCreateKey} className="w-full" size="lg" disabled={isProcessing}>
                                     <Key className="mr-2 h-4 w-4" />
                                     {isRenewalMode ? 'Renew Key' : 'Create Key'}
                                 </Button>
@@ -302,8 +400,8 @@ function RegisterContent() {
                         </div>
                     )}
 
-                    {/* Info Section (only show when idle) */}
-                    {step === 'idle' && !isExpiredKey && (
+                    {/* Info Section */}
+                    {step === 'idle' && !isKeyExpired && (
                         <div className="bg-muted/30 border border-border rounded-lg p-4">
                             <h4 className="font-medium mb-2">What is Orderly?</h4>
                             <p className="text-sm text-muted-foreground">
@@ -320,7 +418,7 @@ function RegisterContent() {
 
 export default function RegisterPage() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
             <RegisterContent />
         </Suspense>
     )

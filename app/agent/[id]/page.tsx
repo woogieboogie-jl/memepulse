@@ -2,11 +2,18 @@
 
 import { NavHeader } from '@/components/nav-header'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { X402Badge } from '@/components/x402-badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Table,
@@ -16,140 +23,360 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ArrowLeft, TrendingUp, TrendingDown, ExternalLink, Play, Pause, Settings, Zap, Activity, Clock, BarChart2 } from 'lucide-react'
-import { useState, useEffect } from 'react'
-import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
-import { getAgentBySlug } from '@/lib/agents-data'
-import { useRouter, useParams } from 'next/navigation'
-import { useTheme } from 'next-themes'
-import { DepositModal } from '@/components/modals/deposit-modal'
-import { KeyRenewalModal } from '@/components/modals/key-renewal-modal'
-
-import { useCredibility, useMiningStats } from '@/hooks/use-contracts'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+  ArrowLeft,
+  TrendingUp,
+  TrendingDown,
+  Play,
+  Pause,
+  Settings,
+  Activity,
+  Trash2,
+  Loader2,
+  Wallet,
+  ArrowUpRight,
+  ArrowDownLeft,
+} from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
+import { agentApi, type AgentResponse } from '@/lib/api'
+import { DecisionLog } from '@/components/decision-log'
+import { KeyRenewalModal } from '@/components/modals/key-renewal-modal'
+import { PendingTransactionManager } from '@/lib/pending-transaction'
+import {
+  useAccount,
+  useInternalTransfer,
+  useTransfer,
+  useCollateral,
+  useAccountInstance,
+  usePositionStream,
+} from '@orderly.network/hooks'
 
-// Helper component for empty state display
-function EmptyValue({ tooltip }: { tooltip: string }) {
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="text-muted-foreground cursor-help">-</span>
-        </TooltipTrigger>
-        <TooltipContent className="z-[9999]" side="top" sideOffset={5}>
-          <p className="font-body text-xs">{tooltip}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  )
+// Memecoin emoji mapping
+const MEMECOIN_EMOJI: Record<string, string> = {
+  DOGE: '🐕',
+  PEPE: '🐸',
+  SHIB: '🐕‍🦺',
+  FLOKI: '🐺',
+  WIF: '🎩',
+  BONK: '💥',
+  BTC: '₿',
+}
+
+function getSymbolFromOrderly(orderlySymbol: string): string {
+  const match = orderlySymbol.match(/PERP_(\w+)_USDC/)
+  return match ? match[1] : orderlySymbol
 }
 
 export default function AgentDetailPage() {
-  const { theme } = useTheme()
-  const [showTxModal, setShowTxModal] = useState(false)
-  const [showDepositModal, setShowDepositModal] = useState(false)
-  const [selectedTx, setSelectedTx] = useState<any>(null)
-  const [agent, setAgent] = useState<ReturnType<typeof getAgentBySlug>>(undefined)
   const router = useRouter()
   const params = useParams()
+  const { isAuthenticated } = useAuth()
+  const agentId = params?.id as string
+
+  const [agent, setAgent] = useState<AgentResponse | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isStarting, setIsStarting] = useState(false)
+  const [isStopping, setIsStopping] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [showRenewalModal, setShowRenewalModal] = useState(false)
 
-  // Live Data Hooks
-  const { credibility, isLoading: isCredibilityLoading } = useCredibility(agent?.address)
-  const { updates, volume, hasData: hasMiningData, isLoading: isMiningLoading } = useMiningStats(agent?.address)
+  // Fund modal state
+  const [showFundModal, setShowFundModal] = useState(false)
+  const [fundAmount, setFundAmount] = useState('')
+  const [isFunding, setIsFunding] = useState(false)
 
-  // Display values with fallback - credibility from on-chain
-  const displayCredibility = credibility || 0
-  const displayMined = hasMiningData ? volume : (agent?.mTokensMined || 0)
-  const displayContributions = hasMiningData ? updates : (agent?.oracleContributions || 0)
+  // Withdraw modal state
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false)
+  const [withdrawAmount, setWithdrawAmount] = useState('')
+  const [isWithdrawing, setIsWithdrawing] = useState(false)
 
-  const handleTogglePause = () => {
-    if (agent) {
-      setAgent({
-        ...agent,
-        status: agent.status === 'active' ? 'paused' : 'active'
-      })
+  // Orderly hooks
+  const { subAccount } = useAccount()
+  const accountInstance = useAccountInstance()
+  const { transfer: internalTransfer, submitting: isTransferSubmitting } = useInternalTransfer()
+  const { transfer: subAccountTransfer, submitting: isSubAccountTransferSubmitting } = useTransfer({
+    fromAccountId: agent?.subAccountId,
+  })
+  const collateral = useCollateral()
+  const accountId = accountInstance?.accountId
+  const [positions] = usePositionStream()
+
+  // SubAccount balance
+  const [subAccountBalance, setSubAccountBalance] = useState<{
+    holding: number
+    frozen: number
+  } | null>(null)
+
+  // SubAccount values
+  const usdcHolding = subAccountBalance?.holding || 0
+  const totalEquity = usdcHolding
+  const subAccountAvailable = usdcHolding - (subAccountBalance?.frozen || 0)
+
+  // Account available balance for transfer
+  const accountAvailable = collateral?.freeCollateral || 0
+
+  // Pending transactions
+  const pendingFund = PendingTransactionManager.get('fund', usdcHolding)
+  const pendingWithdraw = PendingTransactionManager.get('withdraw', usdcHolding)
+  const hasPendingTransaction = pendingFund || pendingWithdraw
+
+  // Get symbol for display
+  const symbol = agent?.symbol ? getSymbolFromOrderly(agent.symbol) : ''
+  const emoji = MEMECOIN_EMOJI[symbol] || '🤖'
+
+  // Fetch subAccount balance
+  const subAccountRef = { current: subAccount }
+  subAccountRef.current = subAccount
+
+  const fetchSubAccountBalance = useCallback(async (subAccountId: string) => {
+    try {
+      const response = await subAccountRef.current.refresh()
+      const holdings = response?.[subAccountId]
+      if (holdings && Array.isArray(holdings)) {
+        const usdcHolding = holdings.find((h: { token: string }) => h.token === 'USDC')
+        if (usdcHolding) {
+          setSubAccountBalance({
+            holding: usdcHolding.holding,
+            frozen: usdcHolding.frozen,
+          })
+        }
+      }
+    } catch {
+      // Ignore errors
+    }
+  }, [])
+
+  // Fetch agent
+  useEffect(() => {
+    const fetchAgent = async () => {
+      if (!agentId) return
+
+      try {
+        const data = await agentApi.get(agentId)
+        setAgent(data)
+      } catch (err) {
+        console.error('Failed to fetch agent:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (isAuthenticated && agentId) {
+      fetchAgent()
+      const intervalId = setInterval(fetchAgent, 5000)
+      return () => clearInterval(intervalId)
+    } else {
+      setIsLoading(false)
+    }
+  }, [isAuthenticated, agentId])
+
+  // Fetch subAccount balance
+  useEffect(() => {
+    if (!agent?.subAccountId || !accountId) return
+
+    const subAccountId = agent.subAccountId
+    fetchSubAccountBalance(subAccountId)
+    const interval = setInterval(() => fetchSubAccountBalance(subAccountId), 10000)
+    return () => clearInterval(interval)
+  }, [agent?.subAccountId, accountId, fetchSubAccountBalance])
+
+  // Poll faster when pending
+  useEffect(() => {
+    if (!hasPendingTransaction || !agent?.subAccountId) return
+
+    const subAccountId = agent.subAccountId
+    const interval = setInterval(() => fetchSubAccountBalance(subAccountId), 1000)
+    return () => clearInterval(interval)
+  }, [hasPendingTransaction, agent?.subAccountId, fetchSubAccountBalance])
+
+  // Check for expired key
+  useEffect(() => {
+    const isKeyExpired = localStorage.getItem('orderly_key_expired') === 'true'
+    if (isKeyExpired) {
+      setShowRenewalModal(true)
+    }
+  }, [])
+
+  const handleStartAgent = async () => {
+    if (!agent || isStarting) return
+
+    setIsStarting(true)
+    try {
+      const data = await agentApi.start(agent.id)
+      setAgent(data)
+    } catch (error) {
+      console.error('Failed to start agent:', error)
+      alert('Failed to start agent')
+    } finally {
+      setIsStarting(false)
     }
   }
 
-  const handleEdit = () => {
-    router.push(`/create?edit=${agent?.id}`)
+  const handleStopAgent = async () => {
+    if (!agent || isStopping) return
+
+    setIsStopping(true)
+    try {
+      const data = await agentApi.stop(agent.id)
+      setAgent(data)
+    } catch (error) {
+      console.error('Failed to stop agent:', error)
+      alert('Failed to stop agent')
+    } finally {
+      setIsStopping(false)
+    }
   }
 
-  // Protect page - require valid trading key
-  useEffect(() => {
-    const isRegistered = localStorage.getItem('orderly_registered') === 'true'
-    const isKeyExpired = localStorage.getItem('orderly_key_expired') === 'true'
+  const handleDeleteAgent = async () => {
+    if (!agent || isDeleting) return
+    if (agent.status !== 'stopped') {
+      alert('Agent must be stopped before deleting')
+      return
+    }
+    if (usdcHolding > 0) {
+      alert('Please withdraw all funds before deleting the agent')
+      return
+    }
+    if (!confirm('Are you sure you want to delete this agent?')) return
 
-    if (isKeyExpired) {
-      setShowRenewalModal(true)
+    setIsDeleting(true)
+    try {
+      await agentApi.delete(agent.id)
+      router.push('/my-agents')
+    } catch (error) {
+      console.error('Failed to delete agent:', error)
+      alert('Failed to delete agent')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleFund = async () => {
+    if (!agent?.subAccountId || !fundAmount || isFunding) return
+
+    const amount = parseFloat(fundAmount)
+    if (isNaN(amount) || amount <= 0) {
+      alert('Please enter a valid amount')
       return
     }
 
-    if (!isRegistered) {
-      router.push('/register')
+    setIsFunding(true)
+    try {
+      await internalTransfer({
+        token: 'USDC',
+        amount: amount.toString(),
+        receiver: agent.subAccountId,
+        decimals: 6,
+      })
+
+      PendingTransactionManager.set('fund', amount, usdcHolding)
+      setShowFundModal(false)
+      setFundAmount('')
+      fetchSubAccountBalance(agent.subAccountId)
+    } catch (error) {
+      console.error('Failed to fund:', error)
+      alert('Failed to fund agent')
+    } finally {
+      setIsFunding(false)
     }
-  }, [router, params.id])
+  }
+
+  const handleWithdraw = async () => {
+    if (!agent?.subAccountId || !withdrawAmount || isWithdrawing || !accountId) return
+
+    const amount = parseFloat(withdrawAmount)
+    if (isNaN(amount) || amount <= 0) {
+      alert('Please enter a valid amount')
+      return
+    }
+
+    if (amount > subAccountAvailable) {
+      alert(`Insufficient balance. Available: $${subAccountAvailable.toFixed(2)}`)
+      return
+    }
+
+    setIsWithdrawing(true)
+    try {
+      await subAccountTransfer('USDC', {
+        account_id: accountId,
+        amount: amount,
+      })
+
+      PendingTransactionManager.set('withdraw', amount, usdcHolding)
+      setShowWithdrawModal(false)
+      setWithdrawAmount('')
+      fetchSubAccountBalance(agent.subAccountId)
+    } catch (error) {
+      console.error('Failed to withdraw:', error)
+      alert('Failed to withdraw funds')
+    } finally {
+      setIsWithdrawing(false)
+    }
+  }
 
   const handleRenewalSuccess = () => {
     setShowRenewalModal(false)
     window.dispatchEvent(new Event('localStorageChange'))
   }
 
-  // Theme-aware colors for charts
-  const isDark = theme === 'dark'
-  const chartColors = {
-    grid: isDark ? '#374151' : '#e5e7eb',
-    axis: isDark ? '#9ca3af' : '#6b7280',
-    line: isDark ? '#a78bfa' : '#8884d8',
-    tooltipBg: isDark ? '#1f2937' : '#ffffff',
-    tooltipBorder: isDark ? '#374151' : '#e5e7eb',
-    tooltipText: isDark ? '#f3f4f6' : '#111827',
-    tooltipItem: isDark ? '#a78bfa' : '#8884d8',
-  }
+  // Health check
+  const isHealthy =
+    agent?.status === 'running' &&
+    agent?.lastHeartbeatAt &&
+    Date.now() - new Date(agent.lastHeartbeatAt).getTime() < 180000
 
-  useEffect(() => {
-    if (params?.id && typeof params.id === 'string') {
-      const agentData = getAgentBySlug(params.id)
-      setAgent(agentData)
-    }
-  }, [params?.id])
-
-  if (!params?.id || !agent) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background/80 backdrop-blur-sm">
         <NavHeader />
-        <main className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-2 mb-6">
-            <Link
-              href="/marketplace"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              ← Back to Marketplace
-            </Link>
+        <main className="container mx-auto px-4 py-16">
+          <div className="max-w-2xl mx-auto text-center">
+            <h1 className="text-3xl font-bold mb-4 text-foreground font-pixel">
+              Connect Your Wallet
+            </h1>
+            <p className="text-muted-foreground mb-8">
+              Please connect your wallet to view agent details.
+            </p>
           </div>
-          <p className="text-muted-foreground">Loading agent data...</p>
         </main>
       </div>
     )
   }
 
-  const handleTxClick = (tx: any) => {
-    setSelectedTx(tx)
-    setShowTxModal(true)
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background/80 backdrop-blur-sm">
+        <NavHeader />
+        <main className="container mx-auto px-4 py-16">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Loading agent...</p>
+          </div>
+        </main>
+      </div>
+    )
   }
 
-  const performanceData = agent?.performanceData && agent.performanceData.length > 0
-    ? agent.performanceData.map(p => ({
-      time: 'time' in p ? p.time : p.date,
-      value: p.value
-    }))
-    : []
+  if (!agent) {
+    return (
+      <div className="min-h-screen bg-background/80 backdrop-blur-sm">
+        <NavHeader />
+        <main className="container mx-auto px-4 py-16">
+          <div className="max-w-2xl mx-auto text-center">
+            <h1 className="text-3xl font-bold mb-4 text-foreground">Agent Not Found</h1>
+            <p className="text-muted-foreground mb-8">
+              The agent you're looking for doesn't exist.
+            </p>
+            <Button asChild>
+              <Link href="/my-agents">Back to My Agents</Link>
+            </Button>
+          </div>
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background/80 backdrop-blur-sm">
@@ -157,411 +384,259 @@ export default function AgentDetailPage() {
 
       <main className="container mx-auto px-4 py-4">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-6">
-            <Button
-              variant="ghost"
-              className="mb-2 pl-0 hover:bg-transparent hover:text-primary"
-              onClick={() => {
-                if (agent) {
-                  router.push(agent.isOwned ? "/my-agents" : "/marketplace")
-                } else {
-                  router.push("/marketplace")
-                }
-              }}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to {agent?.isOwned ? "My Agents" : "Marketplace"}
-            </Button>
+          {/* Back Button */}
+          <Button
+            variant="ghost"
+            className="mb-4 pl-0 hover:bg-transparent hover:text-primary"
+            onClick={() => router.push('/my-agents')}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to My Agents
+          </Button>
 
-            {/* Memecoin Hero Section - NEW! */}
-            {agent.memecoin && (
-              <Card className="mb-6 border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
-                <CardContent className="pt-6">
-                  <div className="flex flex-col md:flex-row items-center gap-6">
-                    {/* Large Memecoin Emoji */}
-                    <div className="flex-shrink-0">
-                      <div className="text-9xl leading-none">
-                        {agent.memecoin === 'DOGE' && '🐕'}
-                        {agent.memecoin === 'PEPE' && '🐸'}
-                        {agent.memecoin === 'SHIB' && '🐕‍🦺'}
-                        {agent.memecoin === 'FLOKI' && '🐺'}
-                        {agent.memecoin === 'WIF' && '🎩'}
-                        {agent.memecoin === 'BONK' && '💥'}
-                        {agent.memecoin === 'BTC' && '₿'}
-                      </div>
-                    </div>
+          {/* Memecoin Hero Section */}
+          <Card className="mb-6 border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+            <CardContent className="pt-6">
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                <div className="flex-shrink-0">
+                  <div className="text-8xl leading-none">{emoji}</div>
+                </div>
 
-                    {/* Memecoin Stats */}
-                    <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Memecoin</p>
-                        <p className="text-2xl font-bold text-primary">{agent.memecoin}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Credibility</p>
-                        <div className="flex items-center gap-2">
-                          <p className="text-2xl font-bold">
-                            {isCredibilityLoading ? <span className="animate-pulse">...</span> : displayCredibility}
-                          </p>
-                          <span className="text-sm text-muted-foreground">%</span>
+                <div className="flex-1 w-full">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h1 className="text-2xl font-bold">{agent.name || 'Unnamed Agent'}</h1>
+                    <Badge
+                      variant={agent.status === 'running' ? 'default' : 'secondary'}
+                      className="h-6"
+                    >
+                      {agent.status === 'running' ? (
+                        <div className="flex items-center gap-1.5">
+                          <div
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isHealthy ? 'bg-green-500 animate-pulse' : 'bg-red-500'
+                            }`}
+                          />
+                          {isHealthy ? 'Running' : 'Not Responding'}
                         </div>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">wM Mined</p>
-                        <p className="text-2xl font-bold text-accent">
-                          {isMiningLoading ? (
-                            <span className="animate-pulse">...</span>
-                          ) : hasMiningData ? (
-                            displayMined.toLocaleString()
-                          ) : displayMined > 0 ? (
-                            displayMined.toLocaleString()
-                          ) : (
-                            <EmptyValue tooltip="No mining activity yet" />
-                          )}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Oracle Contributions</p>
-                        <p className="text-2xl font-bold">
-                          {isMiningLoading ? (
-                            <span className="animate-pulse">...</span>
-                          ) : displayContributions > 0 ? (
-                            displayContributions
-                          ) : (
-                            <EmptyValue tooltip="No contributions yet" />
-                          )}
-                        </p>
-                      </div>
-                    </div>
+                      ) : agent.status === 'starting' ? (
+                        <div className="flex items-center gap-1.5">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Starting
+                        </div>
+                      ) : agent.status === 'stopping' ? (
+                        <div className="flex items-center gap-1.5">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Stopping
+                        </div>
+                      ) : (
+                        'Stopped'
+                      )}
+                    </Badge>
                   </div>
-                </CardContent>
-              </Card>
-            )}
 
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-2xl font-bold">{agent.name}</h1>
-                  <div className="flex items-center gap-2">
-                    {agent.status && (
-                      <Badge variant={agent.status === 'active' ? 'default' : 'secondary'} className="h-6">
-                        {agent.status === 'active' ? (
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                            Running
-                          </div>
-                        ) : 'Stopped'}
+                  <p className="text-muted-foreground mb-4 max-w-2xl">{agent.strategy}</p>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">{agent.symbol}</Badge>
+                    {agent.trigger?.type === 'twitter' && (
+                      <Badge variant="outline">@{agent.trigger.username}</Badge>
+                    )}
+                    {agent.trigger?.type === 'timer' && (
+                      <Badge variant="outline">
+                        {((agent.trigger.intervalMs ?? 60000) / 60000).toFixed(0)}min
                       </Badge>
                     )}
-                    <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-muted/50 border text-xs font-medium text-muted-foreground">
-                      <Activity className="w-3 h-3" />
-                      Heartbeat: 1m ago
-                    </div>
+                    {agent.context && <Badge variant="outline">{agent.context}</Badge>}
                   </div>
                 </div>
 
-                <p className="text-muted-foreground mb-4 max-w-2xl text-lg leading-relaxed">
-                  {agent.strategy}
-                </p>
-
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {agent.triggers.map(trigger => (
-                    <Badge key={trigger} variant="secondary" className="px-2.5 py-1">{trigger}</Badge>
-                  ))}
-                  {agent.contexts.map(context => (
-                    <Badge key={context} variant="outline" className="px-2.5 py-1">{context}</Badge>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex flex-col items-end gap-3">
-                <div className="flex gap-2">
-                  {agent.isOwned ? (
+                <div className="flex flex-col gap-2">
+                  {agent.status === 'running' ? (
+                    <Button
+                      variant="destructive"
+                      onClick={handleStopAgent}
+                      disabled={isStopping}
+                    >
+                      {isStopping ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Pause className="mr-2 h-4 w-4" />
+                      )}
+                      Stop Agent
+                    </Button>
+                  ) : agent.status === 'starting' || agent.status === 'stopping' ? (
+                    <Button disabled>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {agent.status === 'starting' ? 'Starting...' : 'Stopping...'}
+                    </Button>
+                  ) : (
                     <>
                       <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleTogglePause}
-                        className="gap-2"
+                        onClick={handleStartAgent}
+                        disabled={totalEquity < 10 || isStarting}
+                        title={totalEquity < 10 ? 'Minimum $10 required' : ''}
                       >
-                        {agent.status === 'active' ? (
-                          <>
-                            <Pause className="h-4 w-4" />
-                            Pause
-                          </>
+                        {isStarting ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
-                          <>
-                            <Play className="h-4 w-4" />
-                            Resume
-                          </>
+                          <Play className="mr-2 h-4 w-4" />
                         )}
+                        Start Agent
                       </Button>
                       <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleEdit}
-                        className="gap-2"
+                        variant="destructive"
+                        onClick={handleDeleteAgent}
+                        disabled={isDeleting || usdcHolding > 0}
+                        title={usdcHolding > 0 ? 'Withdraw all funds first' : ''}
                       >
-                        <Settings className="h-4 w-4" />
-                        Config
+                        {isDeleting ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="mr-2 h-4 w-4" />
+                        )}
+                        Delete
                       </Button>
-                      <Button size="sm" onClick={() => setShowDepositModal(true)}>Add Funds</Button>
                     </>
-                  ) : (
-                    <Button size="sm" onClick={() => setShowDepositModal(true)}>Deposit to Agent</Button>
                   )}
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-4 mb-6 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">Total Equity</p>
-                  <Badge variant="outline" className="text-[10px] font-normal">USDC</Badge>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">${agent.funded.toLocaleString()}</span>
-                  {agent.totalDeposits && (
-                    <span className="text-xs text-muted-foreground">/ ${agent.totalDeposits.toLocaleString()} cap</span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">Total P&L</p>
-                  {agent.pnl >= 0 ? <TrendingUp className="h-4 w-4 text-accent" /> : <TrendingDown className="h-4 w-4 text-destructive" />}
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className={`text-2xl font-bold ${agent.pnl >= 0 ? 'text-accent' : 'text-destructive'}`}>
-                    {agent.pnl >= 0 ? '+' : ''}${agent.pnl.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </span>
-                  <span className={`text-xs ${agent.pnl >= 0 ? 'text-accent' : 'text-destructive'}`}>
-                    ({((agent.pnl / (agent.funded - agent.pnl)) * 100).toFixed(1)}%)
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">Sharpe Ratio</p>
-                  <BarChart2 className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">{(agent.sharpeRatio ?? 0).toFixed(2)}</span>
-                  <Badge variant={agent.sharpeRatio > 2 ? 'default' : 'secondary'} className="text-[10px] h-5">
-                    {agent.sharpeRatio > 2 ? 'Excellent' : 'Good'}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-muted-foreground">Win Rate</p>
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">{agent.winRate ?? 0}%</span>
-                  <span className="text-xs text-muted-foreground">{agent.totalTrades || 0} trades</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-6 mb-6 md:grid-cols-3">
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle>Performance Chart</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] w-full">
-                  {performanceData && performanceData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={performanceData} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} opacity={0.3} vertical={false} />
-                        <XAxis
-                          dataKey="time"
-                          stroke={chartColors.axis}
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          dy={10}
-                        />
-                        <YAxis
-                          stroke={chartColors.axis}
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          dx={-10}
-                          domain={['auto', 'auto']}
-                        />
-                        <RechartsTooltip
-                          contentStyle={{
-                            backgroundColor: chartColors.tooltipBg,
-                            border: `1px solid ${chartColors.tooltipBorder}`,
-                            borderRadius: '8px',
-                            padding: '8px 12px',
-                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                          }}
-                          labelStyle={{ color: chartColors.tooltipText, fontWeight: 'bold', marginBottom: '4px' }}
-                          itemStyle={{ color: chartColors.tooltipItem }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="value"
-                          stroke={chartColors.line}
-                          strokeWidth={3}
-                          dot={false}
-                          activeDot={{ r: 6, fill: chartColors.line, stroke: isDark ? '#1f2937' : 'white', strokeWidth: 2 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <p className="text-muted-foreground">No performance data available</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-6">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Risk Metrics</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <TrendingDown className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Max Drawdown</span>
-                    </div>
-                    <span className="font-medium text-destructive">-{agent.maxDrawdown || 0}%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Avg Hold Time</span>
-                    </div>
-                    <span className="font-medium">{agent.avgTradeDuration || 'N/A'}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Total Trades</span>
-                    </div>
-                    <span className="font-medium">{agent.totalTrades || 0}</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Configuration</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Leverage Cap</span>
-                    <Badge variant="outline">5x</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Stop Loss</span>
-                    <Badge variant="outline">Hard (-5%)</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Take Profit</span>
-                    <Badge variant="outline">Trailing</Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Oracle Feed Assignment */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Oracle Feed Assignment
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">Contributing to:</p>
-                  <p className="text-2xl font-bold flex items-center gap-2 mb-1">
-                    {agent.memecoin} Pulse Oracle
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {displayContributions} submissions • {displayMined.toLocaleString()} wM mined
-                  </p>
-                </div>
-                <Button asChild>
-                  <Link href={`/feed/${agent.memecoin}`}>
-                    View Full Feed
-                    <ExternalLink className="h-4 w-4 ml-2" />
-                  </Link>
-                </Button>
               </div>
             </CardContent>
           </Card>
 
+          {/* Stats Grid */}
+          <div className="grid gap-4 mb-6 md:grid-cols-3">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-muted-foreground">Collateral</p>
+                  <Wallet className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-2xl font-bold">${usdcHolding.toFixed(2)}</p>
+                {totalEquity < 10 && (
+                  <p className="text-xs text-yellow-500 mt-1">Min $10 required to start</p>
+                )}
+                {pendingFund || pendingWithdraw ? (
+                  <div className="mt-2">
+                    {pendingFund && (
+                      <div className="flex items-center gap-1.5 text-xs text-primary">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>+${pendingFund.amount.toFixed(2)} pending</span>
+                      </div>
+                    )}
+                    {pendingWithdraw && (
+                      <div className="flex items-center gap-1.5 text-xs text-destructive">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>-${pendingWithdraw.amount.toFixed(2)} pending</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      size="sm"
+                      className="flex-1 h-7 text-xs"
+                      onClick={() => setShowFundModal(true)}
+                    >
+                      <ArrowDownLeft className="h-3 w-3 mr-1" />
+                      Fund
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 h-7 text-xs"
+                      onClick={() => setShowWithdrawModal(true)}
+                      disabled={subAccountAvailable <= 0}
+                    >
+                      <ArrowUpRight className="h-3 w-3 mr-1" />
+                      Withdraw
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-muted-foreground">Equity</p>
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-2xl font-bold">${totalEquity.toFixed(2)}</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-muted-foreground">Available</p>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-2xl font-bold">${subAccountAvailable.toFixed(2)}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Tabs */}
           <Tabs defaultValue="positions" className="space-y-4">
             <TabsList>
               <TabsTrigger value="positions">Positions</TabsTrigger>
-              <TabsTrigger value="trades">History</TabsTrigger>
-              <TabsTrigger value="reasoning">Reasoning</TabsTrigger>
-              <TabsTrigger value="transactions">x402 Ledger</TabsTrigger>
+              <TabsTrigger value="decisions">Decisions</TabsTrigger>
             </TabsList>
 
             <TabsContent value="positions">
               <Card>
+                <CardHeader>
+                  <CardTitle>Open Positions</CardTitle>
+                </CardHeader>
                 <CardContent className="p-0">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Asset</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Entry</TableHead>
-                        <TableHead>Current</TableHead>
-                        <TableHead>P&L</TableHead>
-                        <TableHead>Leverage</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
+                        <TableHead>Symbol</TableHead>
+                        <TableHead>Side</TableHead>
+                        <TableHead className="text-right">Size</TableHead>
+                        <TableHead className="text-right">Entry Price</TableHead>
+                        <TableHead className="text-right">Mark Price</TableHead>
+                        <TableHead className="text-right">Unrealized PnL</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {agent.positions.length > 0 ? (
-                        agent.positions.map((pos) => (
-                          <TableRow key={pos.id}>
-                            <TableCell className="font-medium">{pos.asset}</TableCell>
-                            <TableCell>
-                              <Badge variant={pos.type === 'Long' ? 'default' : 'secondary'} className="font-normal">
-                                {pos.type}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>${pos.entry.toLocaleString()}</TableCell>
-                            <TableCell>${pos.current.toLocaleString()}</TableCell>
-                            <TableCell className={pos.pnl >= 0 ? 'text-accent' : 'text-destructive'}>
-                              {pos.pnl >= 0 ? '+' : ''}${pos.pnl}
-                            </TableCell>
-                            <TableCell>{pos.leverage}</TableCell>
-                            <TableCell className="text-right">
-                              <X402Badge onClick={() => handleTxClick({ txHash: pos.txHash, type: 'Trade' })} />
-                            </TableCell>
-                          </TableRow>
-                        ))
+                      {positions?.rows && positions.rows.length > 0 ? (
+                        positions.rows.map((position) => {
+                          const isLong = position.position_qty > 0
+                          const pnl = position.unrealized_pnl || 0
+                          const pnlPercent = position.unrealized_pnl_ROI
+                            ? (position.unrealized_pnl_ROI * 100).toFixed(2)
+                            : '0.00'
+                          return (
+                            <TableRow key={position.symbol}>
+                              <TableCell className="font-medium">{position.symbol}</TableCell>
+                              <TableCell>
+                                <Badge variant={isLong ? 'default' : 'destructive'}>
+                                  {isLong ? 'Long' : 'Short'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {Math.abs(position.position_qty).toFixed(4)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                ${position.average_open_price?.toFixed(2) || '-'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                ${position.mark_price?.toFixed(2) || '-'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <span className={pnl >= 0 ? 'text-accent' : 'text-destructive'}>
+                                  ${pnl.toFixed(2)} ({pnl >= 0 ? '+' : ''}
+                                  {pnlPercent}%)
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                             No open positions
                           </TableCell>
                         </TableRow>
@@ -572,205 +647,147 @@ export default function AgentDetailPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="trades">
-              <Card>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Asset</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Entry</TableHead>
-                        <TableHead>Exit</TableHead>
-                        <TableHead>P&L</TableHead>
-                        <TableHead>Duration</TableHead>
-                        <TableHead className="text-right">Receipt</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {agent.completedTrades.length > 0 ? (
-                        agent.completedTrades.map((trade) => (
-                          <TableRow key={trade.id}>
-                            <TableCell className="text-xs text-muted-foreground">{trade.date}</TableCell>
-                            <TableCell className="font-medium">{trade.asset}</TableCell>
-                            <TableCell>
-                              <Badge variant={trade.type === 'Long' ? 'default' : 'secondary'} className="font-normal">
-                                {trade.type}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>${trade.entry.toLocaleString()}</TableCell>
-                            <TableCell>${trade.exit.toLocaleString()}</TableCell>
-                            <TableCell className={trade.pnl >= 0 ? 'text-accent font-medium' : 'text-destructive font-medium'}>
-                              {trade.pnl >= 0 ? '+' : ''}${trade.pnl}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-sm">{trade.duration}</TableCell>
-                            <TableCell className="text-right">
-                              <X402Badge onClick={() => handleTxClick({ txHash: trade.txHash, type: 'Trade', amount: trade.pnl })} />
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                            No completed trades
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="transactions">
-              <Card>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Chain</TableHead>
-                        <TableHead className="text-right">Transaction</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {agent.transactions.length > 0 ? (
-                        agent.transactions.map((tx) => (
-                          <TableRow key={tx.id}>
-                            <TableCell>
-                              <Badge variant="outline" className="font-normal">{tx.type}</Badge>
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              {tx.type === 'Creation' ? `${tx.amount} USDC` : `$${tx.amount.toLocaleString()}`}
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{tx.date}</TableCell>
-                            <TableCell className="text-xs">{tx.chain}</TableCell>
-                            <TableCell className="text-right">
-                              <button
-                                onClick={() => handleTxClick(tx)}
-                                className="inline-flex items-center gap-1 text-primary hover:underline font-mono text-xs"
-                              >
-                                {tx.txHash.substring(0, 8)}...
-                                <ExternalLink className="h-3 w-3" />
-                              </button>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                            No transactions
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="reasoning">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Agent Reasoning Log</CardTitle>
-                  <CardDescription>Real-time decision making process</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {agent.reasoningLog.length > 0 ? (
-                    <div className="space-y-6">
-                      {agent.reasoningLog.map((log) => (
-                        <div key={log.id} className="relative pl-6 border-l-2 border-muted pb-2 last:pb-0">
-                          <div className="absolute -left-[5px] top-0 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-background" />
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-xs text-muted-foreground font-mono">{log.time}</span>
-                            <Badge variant="outline" className="text-[10px]">{log.trigger}</Badge>
-                          </div>
-                          <h4 className="font-semibold text-sm mb-1">{log.action}</h4>
-                          <div className="bg-muted/30 rounded-lg p-3 text-sm space-y-2">
-                            <p>
-                              <span className="font-medium text-muted-foreground">Context: </span>
-                              {log.context}
-                            </p>
-                            <p>
-                              <span className="font-medium text-muted-foreground">Reasoning: </span>
-                              {log.reasoning}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center text-muted-foreground py-8">
-                      No reasoning logs available
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+            <TabsContent value="decisions">
+              <DecisionLog agentId={agent.id} />
             </TabsContent>
           </Tabs>
         </div>
-      </main >
+      </main>
 
-      {showTxModal && selectedTx && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={() => setShowTxModal(false)}>
-          <Card className="w-full max-w-md shadow-lg" onClick={(e) => e.stopPropagation()}>
-            <CardHeader>
-              <CardTitle>Transaction Receipt</CardTitle>
-              <CardDescription>x402 Protocol Verification</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-3 bg-muted/50 rounded-lg space-y-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Transaction Hash</Label>
-                  <p className="font-mono text-sm break-all text-primary">{selectedTx.txHash}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Chain</Label>
-                    <p className="text-sm font-medium">{selectedTx.chain || 'Ethereum'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Timestamp</Label>
-                    <p className="text-sm font-medium">{selectedTx.date || new Date().toLocaleString()}</p>
-                  </div>
-                </div>
-                {selectedTx.amount && (
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Amount</Label>
-                    <p className="text-lg font-bold">${selectedTx.amount}</p>
-                  </div>
-                )}
+      {/* Fund Modal */}
+      <Dialog open={showFundModal} onOpenChange={setShowFundModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Fund Agent</DialogTitle>
+            <DialogDescription>
+              Transfer USDC from your main account to this agent's sub account.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="p-4 bg-muted/30 rounded-lg text-sm space-y-2">
+              <p className="text-muted-foreground">
+                Funds are transferred internally within Orderly Network. Each agent has its own
+                isolated sub account.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fund-amount">Amount (USDC)</Label>
+              <Input
+                id="fund-amount"
+                type="number"
+                value={fundAmount}
+                onChange={(e) => setFundAmount(e.target.value)}
+                placeholder="10.00"
+                min="0"
+                step="0.01"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Main Account Available</span>
+                <span className="font-medium">${accountAvailable.toFixed(2)} USDC</span>
               </div>
-              <Button className="w-full" onClick={() => setShowTxModal(false)}>
-                Close Receipt
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )
-      }
+            </div>
 
-      {
-        showDepositModal && agent && (
-          <DepositModal
-            agentName={agent.name}
-            agentStrategy={agent.strategy}
-            agentTrigger={agent.triggers[0]}
-            agentContexts={agent.contexts}
-            agentPnl={agent.pnl}
-            agentSharpeRatio={agent.sharpeRatio}
-            agentWinRate={agent.winRate}
-            isOwnAgent={agent.isOwned || false}
-            onClose={() => setShowDepositModal(false)}
-            onSuccess={() => {
-              setShowDepositModal(false)
-            }}
-          />
-        )
-      }
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowFundModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleFund}
+                disabled={
+                  isFunding ||
+                  isTransferSubmitting ||
+                  !fundAmount ||
+                  parseFloat(fundAmount) <= 0 ||
+                  parseFloat(fundAmount) > accountAvailable
+                }
+              >
+                {isFunding || isTransferSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Transferring...
+                  </>
+                ) : (
+                  'Transfer'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Withdraw Modal */}
+      <Dialog open={showWithdrawModal} onOpenChange={setShowWithdrawModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Withdraw to Main Account</DialogTitle>
+            <DialogDescription>
+              Transfer USDC from this agent back to your main account.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="p-4 bg-muted/30 rounded-lg text-sm space-y-2">
+              <p className="text-muted-foreground">
+                Make sure to stop the agent before withdrawing all funds to avoid trading errors.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="withdraw-amount">Amount (USDC)</Label>
+              <Input
+                id="withdraw-amount"
+                type="number"
+                value={withdrawAmount}
+                onChange={(e) => setWithdrawAmount(e.target.value)}
+                placeholder="10.00"
+                min="0"
+                step="0.01"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Agent Available Balance</span>
+                <span className="font-medium">${subAccountAvailable.toFixed(2)} USDC</span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowWithdrawModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleWithdraw}
+                disabled={
+                  isWithdrawing ||
+                  isSubAccountTransferSubmitting ||
+                  !withdrawAmount ||
+                  parseFloat(withdrawAmount) <= 0 ||
+                  parseFloat(withdrawAmount) > subAccountAvailable
+                }
+              >
+                {isWithdrawing || isSubAccountTransferSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Withdrawing...
+                  </>
+                ) : (
+                  'Withdraw'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <KeyRenewalModal
         isOpen={showRenewalModal}
@@ -778,6 +795,6 @@ export default function AgentDetailPage() {
         onSuccess={handleRenewalSuccess}
         isExpired={true}
       />
-    </div >
+    </div>
   )
 }
