@@ -130,7 +130,7 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
                                                 </Badge>
                                             )}
                                         </div>
-                                        <p className="text-muted-foreground">{getMemecoinName(symbol)} Social Pulse Feed</p>
+                                        <p className="text-muted-foreground">{getMemecoinName(symbol)} Oracle Feed</p>
                                         <p className="text-sm text-muted-foreground mt-1">
                                             {isStatsLoading ? '...' : dailyUpdates} updates today • Last update: {isPriceLoading ? '...' : getTimeAgo(new Date(updatedAt ? updatedAt * 1000 : Date.now()).toISOString())}
                                         </p>

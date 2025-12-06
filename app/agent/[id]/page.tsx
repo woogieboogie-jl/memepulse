@@ -63,8 +63,8 @@ export default function AgentDetailPage() {
   const { credibility, isLoading: isCredibilityLoading } = useCredibility(agent?.address)
   const { updates, volume, hasData: hasMiningData, isLoading: isMiningLoading } = useMiningStats(agent?.address)
 
-  // Display values with fallback
-  const displaySocialScore = isCredibilityLoading ? agent?.socialScore || 0 : credibility
+  // Display values with fallback - credibility from on-chain
+  const displayCredibility = credibility || 0
   const displayMined = hasMiningData ? volume : (agent?.mTokensMined || 0)
   const displayContributions = hasMiningData ? updates : (agent?.oracleContributions || 0)
 
@@ -198,12 +198,12 @@ export default function AgentDetailPage() {
                         <p className="text-2xl font-bold text-primary">{agent.memecoin}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground mb-1">Social Pulse</p>
+                        <p className="text-sm text-muted-foreground mb-1">Credibility</p>
                         <div className="flex items-center gap-2">
                           <p className="text-2xl font-bold">
-                            {isCredibilityLoading ? <span className="animate-pulse">...</span> : displaySocialScore}
+                            {isCredibilityLoading ? <span className="animate-pulse">...</span> : displayCredibility}
                           </p>
-                          <span className="text-sm text-muted-foreground">/100</span>
+                          <span className="text-sm text-muted-foreground">%</span>
                         </div>
                       </div>
                       <div>

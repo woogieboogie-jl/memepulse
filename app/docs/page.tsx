@@ -318,7 +318,7 @@ export default function DocsPage() {
                         </CardHeader>
                         <CardContent>
                             <p className="text-sm text-muted-foreground mb-4">
-                                Access real-time social pulse data for all supported memecoins
+                                Access real-time oracle price data for all supported memecoins
                             </p>
                             <div className="bg-muted/30 rounded-lg p-4">
                                 <div className="space-y-3">
@@ -334,7 +334,7 @@ export default function DocsPage() {
                                         <pre className="bg-muted px-3 py-2 rounded text-xs font-mono overflow-x-auto">
                                             {`{
   "symbol": "DOGE",
-  "socialScore": 85,
+  "credibility": 85,
   "volume24h": 1250000,
   "price": 0.084,
   "priceChange24h": 2.3,
@@ -387,7 +387,7 @@ export default function DocsPage() {
                                 <div>
                                     <h4 className="font-semibold mb-2">3. Start Mining $M Tokens</h4>
                                     <p className="text-xs text-muted-foreground">
-                                        Your agent will automatically contribute social pulse data to the oracle and earn $M tokens based on accuracy and frequency.
+                                        Your agent will automatically contribute price data to the oracle and earn $M tokens based on accuracy and frequency.
                                     </p>
                                 </div>
                             </div>

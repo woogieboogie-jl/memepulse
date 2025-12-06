@@ -21,7 +21,7 @@ export interface PulseCardProps {
     symbol: string
     currentPrice?: number
     priceChange24h?: number
-    socialScore?: number
+    credibility?: number // 0-100 on-chain credibility score
     volume24h?: number
     lastProofTxHash?: string
 }
@@ -47,7 +47,7 @@ export function PulseCard({
     symbol,
     currentPrice: initialPrice,
     priceChange24h: initialChange,
-    socialScore: initialScore,
+    credibility: initialCredibility,
     volume24h: initialVolume,
 }: PulseCardProps) {
     const router = useRouter()
@@ -66,24 +66,24 @@ export function PulseCard({
 
     // Use live data or fallback to initial props, or show empty state
     const displayPrice = hasPriceData && livePrice !== null ? livePrice : initialPrice
-    const displayScore = hasStatsData ? Math.min(dailyUpdates * 10, 100) : initialScore || 0 // Map updates to score (mock)
+    const displayCredibility = hasStatsData ? Math.min(dailyUpdates * 10, 100) : initialCredibility || 0 // Map updates to credibility
     const displayVolume = initialVolume || 0
 
     // 24h change - use localStorage tracking, fall back to initial if available
     const displayChange = hasChangeData ? changePercent24h : initialChange
 
-    // Determine pulse intensity based on Social Pulse
+    // Determine pulse intensity based on Credibility
     const getPulseIntensity = () => {
-        if (displayScore >= 80) return 'pulse-strong'
-        if (displayScore >= 60) return 'pulse-medium'
-        if (displayScore >= 40) return 'pulse-weak'
+        if (displayCredibility >= 80) return 'pulse-strong'
+        if (displayCredibility >= 60) return 'pulse-medium'
+        if (displayCredibility >= 40) return 'pulse-weak'
         return 'pulse-idle'
     }
 
-    const getSocialScoreColor = () => {
-        if (displayScore >= 80) return 'text-destructive'
-        if (displayScore >= 60) return 'text-accent'
-        if (displayScore >= 40) return 'text-primary'
+    const getCredibilityColor = () => {
+        if (displayCredibility >= 80) return 'text-destructive'
+        if (displayCredibility >= 60) return 'text-accent'
+        if (displayCredibility >= 40) return 'text-primary'
         return 'text-muted-foreground'
     }
 
@@ -110,7 +110,7 @@ export function PulseCard({
                 <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
                         <div className="text-2xl font-bold font-pixel">{symbol}</div>
-                        <Activity className={`h-5 w-5 ${getSocialScoreColor()}`} />
+                        <Activity className={`h-5 w-5 ${getCredibilityColor()}`} />
                     </div>
                     <div className="text-right">
                         <div className="text-lg font-bold">
@@ -137,27 +137,27 @@ export function PulseCard({
                     </div>
                 </div>
 
-                {/* Social Pulse Gauge */}
+                {/* Credibility Gauge */}
                 <div className="mb-3">
                     <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-muted-foreground">Social Pulse</span>
-                        <span className={`font-bold ${getSocialScoreColor()}`}>
-                            {hasStatsData ? `${displayScore}/100` : (
+                        <span className="text-muted-foreground">Credibility</span>
+                        <span className={`font-bold ${getCredibilityColor()}`}>
+                            {hasStatsData ? `${displayCredibility}%` : (
                                 <EmptyValue tooltip="No oracle updates yet" />
                             )}
                         </span>
                     </div>
                     <div className="h-2 bg-secondary rounded-full overflow-hidden">
                         <div
-                            className={`h-full transition-all duration-500 ${displayScore >= 80
+                            className={`h-full transition-all duration-500 ${displayCredibility >= 80
                                 ? 'bg-destructive animate-pulse'
-                                : displayScore >= 60
+                                : displayCredibility >= 60
                                     ? 'bg-accent'
-                                    : displayScore >= 40
+                                    : displayCredibility >= 40
                                         ? 'bg-primary'
                                         : 'bg-muted'
                                 }`}
-                            style={{ width: `${displayScore}%` }}
+                            style={{ width: `${displayCredibility}%` }}
                         />
                     </div>
                 </div>
@@ -216,7 +216,7 @@ export function PulseCard({
                 </div>
 
                 {/* Pulse Animation Overlay */}
-                {displayScore >= 80 && (
+                {displayCredibility >= 80 && (
                     <div className="absolute inset-0 pointer-events-none">
                         <div className="absolute inset-0 bg-destructive/10 animate-pulse" />
                     </div>

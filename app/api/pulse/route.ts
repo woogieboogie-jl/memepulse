@@ -29,12 +29,12 @@ const client = createWalletClient({
 })
 
 export async function GET() {
-    // Simulate fetching "Pulse" from Twitter/Socials
+    // Simulate fetching activity score (mock data)
     const mockPulse = {
         symbol: 'DOGE',
         price: 42000000, // 0.42 USD * 10^8
         volume: 1000,
-        socialScore: Math.floor(Math.random() * 100), // Random score 0-100
+        activityScore: Math.floor(Math.random() * 100), // Random score 0-100
         timestamp: Math.floor(Date.now() / 1000)
     }
 
@@ -44,14 +44,14 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { symbol, price, volume, socialScore, timestamp } = body
+        const { symbol, price, volume, activityScore, timestamp } = body
 
         // 1. Verify the data (e.g. check if price is within range, score is valid)
         // In a real app, we would re-fetch the data to verify it matches what the user claims,
         // or we would generate this data ourselves and just have the user request it.
 
         // 2. Sign the data
-        // Matches Solidity: keccak256(abi.encodePacked(symbol, price, volume, socialScore, timestamp))
+        // Matches Solidity: keccak256(abi.encodePacked(symbol, price, volume, activityScore, timestamp))
         // We need to encode the string "DOGE" carefully. Solidity string encoding is dynamic.
         // However, abi.encodePacked simply concatenates bytes.
 
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
         const messageHash = keccak256(
             encodePacked(
                 ['string', 'int256', 'uint256', 'uint256', 'uint256'],
-                [symbol, BigInt(price), BigInt(volume), BigInt(socialScore), BigInt(timestamp)]
+                [symbol, BigInt(price), BigInt(volume), BigInt(activityScore), BigInt(timestamp)]
             )
         )
 
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
             success: true,
             signature,
-            payload: { symbol, price, volume, socialScore, timestamp }
+            payload: { symbol, price, volume, activityScore, timestamp }
         })
 
     } catch (error) {

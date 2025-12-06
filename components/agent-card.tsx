@@ -14,7 +14,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
-import { useMiningStats, useClaimRewards, useCurrentEpoch, useClaimableRewards } from '@/hooks/use-contracts'
+import { useMiningStats, useClaimRewards, useCurrentEpoch, useClaimableRewards, useCredibility } from '@/hooks/use-contracts'
 
 export interface AgentCardProps {
   id: string
@@ -25,11 +25,10 @@ export interface AgentCardProps {
 
   // PRD-Aligned: Memecoin-specific fields
   memecoin: string // DOGE, PEPE, SHIB, FLOKI, etc.
-  socialScore: number // 0-100 current social sentiment
   mTokensMined: number // $M rewards earned from oracle contributions
   oracleContributions: number // Number of pulses submitted to chain
 
-  address?: string // Wallet address for on-chain interactions
+  address?: string // Wallet address for on-chain interactions (required for credibility)
 
   symbol?: string // Deprecated: use memecoin instead
   status?: 'active' | 'paused' | 'stopped'
@@ -89,7 +88,6 @@ export function AgentCard({
   funded,
   pnl,
   memecoin,
-  socialScore = 0,
   mTokensMined = 0,
   oracleContributions = 0,
   address,
@@ -102,11 +100,17 @@ export function AgentCard({
   const { theme } = useTheme()
   const router = useRouter()
 
+  // Live Credibility from on-chain
+  const { credibility, isLoading: isCredibilityLoading } = useCredibility(address)
+  
   // Live Mining Stats - epoch-based
   const { currentEpoch, isLoading: isEpochLoading } = useCurrentEpoch()
   const { updates, volume, hasData: hasMiningData, isLoading: isMiningLoading } = useMiningStats(address)
   const { claimable, isLoading: isClaimableLoading } = useClaimableRewards(address, currentEpoch > 1 ? currentEpoch - 1 : 0)
   const { mutate: claimRewards, isPending: isClaiming } = useClaimRewards()
+  
+  // Display credibility (0-100)
+  const displayCredibility = credibility || 0
 
   // Theme-aware sparkline color
   const getSparklineColor = () => {
@@ -137,22 +141,22 @@ export function AgentCard({
     }
   }
 
-  const getSocialScoreColor = () => {
-    if (socialScore >= 80) return 'text-destructive'
-    if (socialScore >= 60) return 'text-accent'
-    if (socialScore >= 40) return 'text-primary'
+  const getCredibilityColor = () => {
+    if (displayCredibility >= 80) return 'text-destructive'
+    if (displayCredibility >= 60) return 'text-accent'
+    if (displayCredibility >= 40) return 'text-primary'
     return 'text-muted-foreground'
   }
 
-  const getSocialScoreBgColor = () => {
-    if (socialScore >= 80) return 'bg-destructive'
-    if (socialScore >= 60) return 'bg-accent'
-    if (socialScore >= 40) return 'bg-primary'
+  const getCredibilityBgColor = () => {
+    if (displayCredibility >= 80) return 'bg-destructive'
+    if (displayCredibility >= 60) return 'bg-accent'
+    if (displayCredibility >= 40) return 'bg-primary'
     return 'bg-muted'
   }
 
-  // Pulse glow effect for high Social Pulse
-  const shouldPulse = socialScore >= 80
+  // Pulse glow effect for high Credibility
+  const shouldPulse = displayCredibility >= 80
   const cardClassName = `overflow-hidden transition-all cursor-pointer group h-full hover:border-primary/50 ${shouldPulse ? 'animate-pulse-glow' : ''
     }`
 
@@ -198,22 +202,22 @@ export function AgentCard({
           </div>
         </div>
 
-        {/* Social Pulse Gauge */}
+        {/* Credibility Gauge */}
         <div className="mb-2">
           <div className="flex items-center justify-between text-xs mb-1">
             <span className="text-muted-foreground flex items-center gap-1">
               <Activity className="h-3 w-3" />
-              Social Pulse
+              Credibility
             </span>
-            <span className={`font-bold ${getSocialScoreColor()}`}>
-              {socialScore}/100
+            <span className={`font-bold ${getCredibilityColor()}`}>
+              {isCredibilityLoading ? '...' : `${displayCredibility}%`}
             </span>
           </div>
           <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
             <div
-              className={`h-full transition-all duration-500 ${getSocialScoreBgColor()} ${shouldPulse ? 'animate-pulse' : ''
+              className={`h-full transition-all duration-500 ${getCredibilityBgColor()} ${shouldPulse ? 'animate-pulse' : ''
                 }`}
-              style={{ width: `${socialScore}%` }}
+              style={{ width: `${displayCredibility}%` }}
             />
           </div>
         </div>
@@ -353,7 +357,7 @@ export function AgentCard({
         </div>
       </CardContent>
 
-      {/* Pulse Glow Overlay for High Social Pulse */}
+      {/* Pulse Glow Overlay for High Credibility */}
       {shouldPulse && (
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute inset-0 bg-destructive/5 animate-pulse" />

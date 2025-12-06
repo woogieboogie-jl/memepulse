@@ -86,7 +86,7 @@ export function FeedAnalyticsCharts({ symbol, currentPulse, averageAccuracy, upd
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle className="text-lg mb-1">Social Pulse History</CardTitle>
+                            <CardTitle className="text-lg mb-1">Credibility History</CardTitle>
                             <div className="flex items-center gap-3">
                                 <span className="text-4xl font-bold">{currentPulse}/100</span>
                                 <Badge variant={isPositive ? 'default' : 'destructive'} className="text-sm">

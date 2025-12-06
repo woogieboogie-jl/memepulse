@@ -248,10 +248,10 @@ export default function MarketplacePage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="social">
+                    <SelectItem value="credibility">
                       <div className="flex items-center gap-2">
                         <Activity className="h-3 w-3" />
-                        Social Pulse
+                        Credibility
                       </div>
                     </SelectItem>
                     <SelectItem value="hottest">

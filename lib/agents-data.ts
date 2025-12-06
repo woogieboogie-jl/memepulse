@@ -25,7 +25,6 @@ export interface AgentDetailData {
 
   // PRD-Aligned: Memecoin-specific fields
   memecoin: string // DOGE, PEPE, SHIB, FLOKI, etc.
-  socialScore: number // 0-100 current social sentiment
   mTokensMined: number // $M rewards earned from oracle contributions
   oracleContributions: number // Number of pulses submitted to chain
 
@@ -98,7 +97,6 @@ export const allAgentsData: Record<string, AgentDetailData> = {
 
     // PRD-Aligned Memecoin Fields
     memecoin: 'DOGE',
-    socialScore: 78,
     mTokensMined: 1240,
     oracleContributions: 142,
 
@@ -180,7 +178,6 @@ export const allAgentsData: Record<string, AgentDetailData> = {
 
     // PRD-Aligned Memecoin Fields  
     memecoin: 'PEPE',
-    socialScore: 62,
     mTokensMined: 340,
     oracleContributions: 89,
 
@@ -246,7 +243,6 @@ export const allAgentsData: Record<string, AgentDetailData> = {
 
     // PRD-Aligned Memecoin Fields
     memecoin: 'SHIB',
-    socialScore: 0,
     mTokensMined: 0,
     oracleContributions: 0,
 
@@ -282,7 +278,6 @@ export const allAgentsData: Record<string, AgentDetailData> = {
 
     // PRD-Aligned Memecoin Fields
     memecoin: 'FLOKI',
-    socialScore: 85,
     mTokensMined: 2650,
     oracleContributions: 156,
 
@@ -366,7 +361,6 @@ export const allAgentsData: Record<string, AgentDetailData> = {
 
     // PRD-Aligned Memecoin Fields
     memecoin: 'WIF',
-    socialScore: 71,
     mTokensMined: 890,
     oracleContributions: 98,
 
@@ -444,7 +438,6 @@ export const allAgentsData: Record<string, AgentDetailData> = {
 
     // PRD-Aligned Memecoin Fields
     memecoin: 'BONK',
-    socialScore: 73,
     mTokensMined: 1580,
     oracleContributions: 112,
 
@@ -528,7 +521,6 @@ export const allAgentsData: Record<string, AgentDetailData> = {
 
     // PRD-Aligned Memecoin Fields (BTC as honorary meme)
     memecoin: 'BTC',
-    socialScore: 92,
     mTokensMined: 4850,
     oracleContributions: 156,
 
@@ -611,7 +603,6 @@ export function getAgentBySlug(idOrSymbol: string): AgentDetailData | undefined 
       funded: 0,
       pnl: 0,
       memecoin: symbol,
-      socialScore: 0,
       mTokensMined: 0,
       oracleContributions: 0,
       winRate: 0,
@@ -640,7 +631,6 @@ export function getAgentBySlug(idOrSymbol: string): AgentDetailData | undefined 
     funded: 0,
     pnl: 0,
     memecoin: symbol,
-    socialScore: 0,
     mTokensMined: 0,
     oracleContributions: 0,
     winRate: 0,
@@ -668,7 +658,6 @@ export function getUserAgents(): AgentCardProps[] {
 
       // PRD-Aligned fields
       memecoin: agent.memecoin,
-      socialScore: agent.socialScore,
       mTokensMined: agent.mTokensMined,
       oracleContributions: agent.oracleContributions,
 
@@ -707,7 +696,6 @@ export function getPublicAgents(): AgentCardProps[] {
 
         // PRD-Aligned fields
         memecoin: agent.memecoin,
-        socialScore: agent.socialScore,
         mTokensMined: agent.mTokensMined,
         oracleContributions: agent.oracleContributions,
 

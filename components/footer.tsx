@@ -18,7 +18,7 @@ export function Footer() {
                             </span>
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                            AI-powered memecoin trading agents with social pulse mining. Earn $M tokens through oracle contributions.
+                            AI-powered memecoin trading agents with PoM mining. Earn $M tokens through oracle contributions.
                         </p>
                     </div>
 

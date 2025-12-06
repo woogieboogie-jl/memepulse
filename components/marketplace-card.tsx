@@ -31,7 +31,6 @@ export interface MarketplaceCardProps {
 
     // PRD-Aligned: Memecoin-specific
     memecoin: string
-    socialScore?: number
     mTokensMined?: number
 
     address?: string // Wallet address for on-chain interactions
@@ -63,7 +62,6 @@ export function MarketplaceCard({
     winRate,
     sharpeRatio,
     memecoin,
-    socialScore = 0,
     mTokensMined = 0,
     address,
     symbol,
@@ -95,8 +93,8 @@ export function MarketplaceCard({
     const { volume } = useMiningStats(address)
     const { price, isLoading: isPriceLoading, hasData: hasPrice } = useOraclePrice(symbolKey as any)
 
-    // Use live score if available, otherwise fallback to static prop
-    const displayScore = address ? credibility : socialScore
+    // Use live credibility from on-chain
+    const displayCredibility = credibility || 0
 
     const getSparklineColor = () => {
         if (pnl < 0) return '#ef4444'
@@ -135,8 +133,8 @@ export function MarketplaceCard({
                                     <div className="flex items-center gap-2 mt-1">
                                         <Activity className="h-3 w-3 text-muted-foreground" />
                                         <span className="text-xs text-muted-foreground">Pulse:</span>
-                                        <span className={`text-xs font-bold ${displayScore >= 80 ? 'text-destructive' : displayScore >= 60 ? 'text-accent' : 'text-primary'}`}>
-                                            {isCredibilityLoading ? '...' : displayScore}/100
+                                        <span className={`text-xs font-bold ${displayCredibility >= 80 ? 'text-destructive' : displayCredibility >= 60 ? 'text-accent' : 'text-primary'}`}>
+                                            {isCredibilityLoading ? '...' : `${displayCredibility}%`}
                                         </span>
                                     </div>
                                 </div>

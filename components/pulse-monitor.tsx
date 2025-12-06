@@ -23,8 +23,8 @@ export function PulseMonitor() {
                 <span className="text-xs font-medium">Pulse:</span>
             </div>
             <div className="flex items-center gap-2">
-                <Badge variant={pulse.socialScore > 50 ? 'default' : 'secondary'} className="text-[10px] h-5">
-                    {pulse.socialScore}/100
+                <Badge variant={pulse.activityScore > 50 ? 'default' : 'secondary'} className="text-[10px] h-5">
+                    {pulse.activityScore}%
                 </Badge>
                 <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                     <Twitter className="h-3 w-3" />

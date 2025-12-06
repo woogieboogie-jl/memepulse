@@ -22,15 +22,15 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-// Memecoin options
+// Memecoin options with activity scores (mock data for demo)
 const MEMECOINS = [
-  { symbol: 'DOGE', name: 'Dogecoin', emoji: '🐕', socialScore: 78, volume: 1250000 },
-  { symbol: 'PEPE', name: 'Pepe', emoji: '🐸', socialScore: 62, volume: 890000 },
-  { symbol: 'SHIB', name: 'Shiba Inu', emoji: '🐕‍🦺', socialScore: 45, volume: 670000 },
-  { symbol: 'FLOKI', name: 'Floki', emoji: '🐺', socialScore: 85, volume: 1560000 },
-  { symbol: 'WIF', name: 'dogwifhat', emoji: '🎩', socialScore: 71, volume: 980000 },
-  { symbol: 'BONK', name: 'Bonk', emoji: '💥', socialScore: 73, volume: 1120000 },
-  { symbol: 'BTC', name: 'Bitcoin', emoji: '₿', socialScore: 92, volume: 5800000 },
+  { symbol: 'DOGE', name: 'Dogecoin', emoji: '🐕', activityScore: 78, volume: 1250000 },
+  { symbol: 'PEPE', name: 'Pepe', emoji: '🐸', activityScore: 62, volume: 890000 },
+  { symbol: 'SHIB', name: 'Shiba Inu', emoji: '🐕‍🦺', activityScore: 45, volume: 670000 },
+  { symbol: 'FLOKI', name: 'Floki', emoji: '🐺', activityScore: 85, volume: 1560000 },
+  { symbol: 'WIF', name: 'dogwifhat', emoji: '🎩', activityScore: 71, volume: 980000 },
+  { symbol: 'BONK', name: 'Bonk', emoji: '💥', activityScore: 73, volume: 1120000 },
+  { symbol: 'BTC', name: 'Bitcoin', emoji: '₿', activityScore: 92, volume: 5800000 },
 ]
 
 // PRD-Aligned Triggers (Pulse types)
@@ -99,9 +99,9 @@ export default function CreateAgentPage() {
     const coin = MEMECOINS.find(c => c.symbol === selectedMemecoin)
     if (!coin) return 0
 
-    // Formula: (socialScore × volume × contextMultiplier) / 100000
+    // Formula: (activityScore × volume × contextMultiplier) / 100000
     const contextMultiplier = 1 + (selectedContexts.length * 0.2)
-    const apy = Math.round((coin.socialScore * (coin.volume / 10000) * contextMultiplier) / 100)
+    const apy = Math.round((coin.activityScore * (coin.volume / 10000) * contextMultiplier) / 100)
 
     return Math.min(apy, 99) // Cap at 99%
   }
@@ -152,7 +152,7 @@ export default function CreateAgentPage() {
           symbol: selectedMemecoin,
           price: 0,
           volume: 0,
-          socialScore: MEMECOINS.find(c => c.symbol === selectedMemecoin)?.socialScore || 0,
+          activityScore: MEMECOINS.find(c => c.symbol === selectedMemecoin)?.activityScore || 0,
           timestamp: Math.floor(Date.now() / 1000),
           agentName,
           strategy
@@ -199,7 +199,7 @@ export default function CreateAgentPage() {
           <div className="mb-4">
             <h1 className="text-3xl font-bold font-pixel">Create Memecoin Pulse Agent</h1>
             <p className="text-sm text-muted-foreground">
-              Deploy an AI agent that monitors social pulse and mines $M tokens
+              Deploy an AI agent that trades and mines $M tokens via oracle contributions
             </p>
           </div>
 
@@ -234,7 +234,7 @@ export default function CreateAgentPage() {
                           <div className="text-sm font-medium">{coin.symbol}</div>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Activity className="h-3 w-3" />
-                            {coin.socialScore}
+                            {coin.activityScore}
                           </div>
                         </button>
                       )
@@ -351,7 +351,7 @@ export default function CreateAgentPage() {
                   </CardHeader>
                   <CardContent>
                     <Textarea
-                      placeholder={`e.g., When ${selectedMemecoin} social pulse spikes above 80 and volume increases 50%, execute long with 3x leverage. Monitor whale wallets and exit if sentiment drops below 60...`}
+                      placeholder={`e.g., When ${selectedMemecoin} price momentum spikes and volume increases 50%, execute long with 3x leverage. Monitor whale wallets and exit if sentiment drops...`}
                       className="min-h-[160px] text-base"
                       value={strategy}
                       onChange={(e) => setStrategy(e.target.value)}
@@ -395,7 +395,7 @@ export default function CreateAgentPage() {
                           </div>
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-2">
-                          Based on {selectedMemecoin} Social Pulse & volume
+                          Based on {selectedMemecoin} activity & volume
                         </p>
                       </div>
                     )}
