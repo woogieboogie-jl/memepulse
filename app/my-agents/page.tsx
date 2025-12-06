@@ -32,7 +32,7 @@ const MEMECOIN_EMOJI: Record<string, string> = {
   BTC: '₿',
 }
 
-function getSymbolFromOrderly(orderlySymbol: string): string {
+function getSymbolFromTrading(tradingSymbol: string): string {
   // PERP_DOGE_USDC -> DOGE
   const match = orderlySymbol.match(/PERP_(\w+)_USDC/)
   return match ? match[1] : orderlySymbol
@@ -44,7 +44,7 @@ function convertToAgentCardProps(
   balance?: SubAccountBalance,
   isHealthy?: boolean
 ): AgentCardProps {
-  const symbol = getSymbolFromOrderly(agent.symbol)
+  const symbol = getSymbolFromTrading(agent.symbol)
 
   // Determine status
   const status = agent.status === 'running' ? 'active' : 'stopped'
@@ -68,7 +68,7 @@ function convertToAgentCardProps(
     name: agent.name || 'Unnamed Agent',
     strategy: agent.strategy || 'No strategy defined',
     funded: balance?.holding ?? 0,
-    pnl: 0, // TODO: Get actual PnL from Orderly
+    pnl: 0, // TODO: Get actual PnL from trading API
     memecoin: symbol,
     socialScore: Math.floor(Math.random() * 40) + 40, // TODO: Get from oracle
     mTokensMined: 0, // TODO: Get from MemeCore contract

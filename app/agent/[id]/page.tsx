@@ -65,7 +65,7 @@ const MEMECOIN_EMOJI: Record<string, string> = {
   BTC: '₿',
 }
 
-function getSymbolFromOrderly(orderlySymbol: string): string {
+function getSymbolFromTrading(tradingSymbol: string): string {
   const match = orderlySymbol.match(/PERP_(\w+)_USDC/)
   return match ? match[1] : orderlySymbol
 }
@@ -93,7 +93,7 @@ export default function AgentDetailPage() {
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [isWithdrawing, setIsWithdrawing] = useState(false)
 
-  // Orderly hooks
+  // Trading hooks
   const { subAccount } = useAccount()
   const accountInstance = useAccountInstance()
   const { transfer: internalTransfer, submitting: isTransferSubmitting } = useInternalTransfer()
@@ -126,7 +126,7 @@ export default function AgentDetailPage() {
   const hasPendingTransaction = pendingFund || pendingWithdraw
 
   // Get symbol for display
-  const symbol = agent?.symbol ? getSymbolFromOrderly(agent.symbol) : ''
+  const symbol = agent?.symbol ? getSymbolFromTrading(agent.symbol) : ''
   const emoji = MEMECOIN_EMOJI[symbol] || '🤖'
 
   // Fetch subAccount balance
@@ -664,8 +664,8 @@ export default function AgentDetailPage() {
           <div className="space-y-4">
             <div className="p-4 bg-muted/30 rounded-lg text-sm space-y-2">
               <p className="text-muted-foreground">
-                Funds are transferred internally within Orderly Network. Each agent has its own
-                isolated sub account.
+                Funds are transferred internally within the trading infrastructure. Each agent has its own
+                isolated sub-account.
               </p>
                 </div>
 

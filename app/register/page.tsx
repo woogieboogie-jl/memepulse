@@ -15,7 +15,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { userApi } from '@/lib/api'
 import { WalletRequired } from '@/components/wallet-required'
 
-// Orderly account status enum
+// Trading account status enum
 enum AccountStatus {
     EnableTradingWithoutConnected = -1,
     NotConnected = 0,
@@ -34,7 +34,7 @@ const STATUS_INFO = {
     },
     [AccountStatus.NotConnected]: {
         label: 'Not Connected',
-        description: 'Wallet needs to be connected to Orderly',
+        description: 'Wallet needs to be connected to trading infrastructure',
         color: 'bg-gray-500',
     },
     [AccountStatus.Connected]: {
@@ -44,7 +44,7 @@ const STATUS_INFO = {
     },
     [AccountStatus.NotSignedIn]: {
         label: 'Not Signed In',
-        description: 'Need to create Orderly account',
+        description: 'Need to create trading account',
         color: 'bg-yellow-500',
     },
     [AccountStatus.SignedIn]: {
@@ -91,7 +91,7 @@ function RegisterContent() {
             try {
                 const userInfo = await userApi.getMe()
                 if (userInfo.orderlyAccountId) {
-                    console.log('Already registered with Orderly, redirecting to create agent')
+                    console.log('Already registered, redirecting to create agent')
                     router.push('/create')
                 }
             } catch (err) {
@@ -112,7 +112,7 @@ function RegisterContent() {
         setError(null)
 
         try {
-            console.log('Step 1: Creating Orderly account...')
+            console.log('Step 1: Creating trading account...')
             await account.createAccount()
             console.log('Account created')
 
@@ -134,9 +134,9 @@ function RegisterContent() {
         setError(null)
 
         try {
-            console.log('Creating/renewing Orderly trading key...')
+            console.log('Creating/renewing trading key...')
             const keyResult = await account.createOrderlyKey(365)
-            console.log('Orderly key created:', keyResult)
+            console.log('Trading key created:', keyResult)
 
             // Get the stored key pair from keyStore
             const storedKeyPair = account.keyStore.getOrderlyKey(address)
@@ -188,7 +188,7 @@ function RegisterContent() {
         return (
             <WalletRequired
                 title="Connect Wallet"
-                description="Please connect your wallet to register with Orderly."
+                description="Please connect your wallet to set up trading infrastructure."
                 variant="card"
                 showHeader={false}
             >
@@ -208,7 +208,7 @@ function RegisterContent() {
                             </div>
                             <div>
                                 <CardTitle className="text-2xl">
-                                    {isRenewalMode ? 'Renew Trading Key' : 'Register with Orderly'}
+                                    {isRenewalMode ? 'Renew Trading Key' : 'Set Up Trading Account'}
                                 </CardTitle>
                                 <CardDescription>
                                     {isRenewalMode
@@ -281,7 +281,7 @@ function RegisterContent() {
                                     <CheckCircle2 className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <h3 className="font-medium text-green-700 dark:text-green-400">Orderly Account Active</h3>
+                                    <h3 className="font-medium text-green-700 dark:text-green-400">Trading Account Active</h3>
                                     <p className="text-xs text-muted-foreground">Account ID: {account.accountId?.slice(0, 10)}...</p>
                                 </div>
                             </div>
@@ -297,10 +297,10 @@ function RegisterContent() {
                             <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                                 <h3 className="font-semibold mb-2 flex items-center gap-2">
                                     <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-sm">1</span>
-                                    Create Orderly Account
+                                    Create Trading Account
                                 </h3>
                                 <p className="text-sm text-muted-foreground mb-3">
-                                    First, we'll create your Orderly account on-chain. This requires one wallet signature.
+                                    First, we'll set up your trading account. This requires one wallet signature.
                                 </p>
                                 <Button onClick={handleCreateAccount} className="w-full" size="lg" disabled={isProcessing}>
                                     <Key className="mr-2 h-4 w-4" />
@@ -323,7 +323,7 @@ function RegisterContent() {
                     {/* Wallet Signature: Creating Account */}
                     {step === 'creating-account' && (
                         <WalletSignaturePrompt
-                            message="Creating Orderly Account"
+                            message="Creating Trading Account"
                             description="Please sign the registration message in your wallet"
                         />
                     )}
@@ -399,9 +399,9 @@ function RegisterContent() {
                     {/* Info Section */}
                     {step === 'idle' && !isKeyExpired && (
                         <div className="bg-muted/30 border border-border rounded-lg p-4">
-                            <h4 className="font-medium mb-2">What is Orderly?</h4>
+                            <h4 className="font-medium mb-2">Why Register?</h4>
                             <p className="text-sm text-muted-foreground">
-                                Orderly is a decentralized trading infrastructure that powers your AI trading agent.
+                                This sets up your trading account on the perpetual DEX infrastructure that powers your AI agent.
                                 Registration is free and only needs to be done once.
                             </p>
                         </div>

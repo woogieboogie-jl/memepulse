@@ -67,7 +67,7 @@ export function OrderlyDepositModal({
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Deposit USDC from your wallet to your Orderly trading account.
+              Deposit USDC from your wallet to your trading account.
               <br />
               Note: Minimum $10 Total Equity required to start trading.
             </p>

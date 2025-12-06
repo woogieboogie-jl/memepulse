@@ -20,7 +20,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { agentApi, userApi, type TriggerConfig } from '@/lib/api'
 import { WalletRequired } from '@/components/wallet-required'
 
-// Memecoin options with Orderly symbols
+// Memecoin options with trading symbols
 const MEMECOINS = [
   { symbol: 'DOGE', orderly: 'PERP_DOGE_USDC', name: 'Dogecoin', emoji: '🐕', socialScore: 78, volume: 1250000 },
   { symbol: 'PEPE', orderly: 'PERP_PEPE_USDC', name: 'Pepe', emoji: '🐸', socialScore: 62, volume: 890000 },
@@ -176,7 +176,7 @@ export default function CreateAgentPage() {
     setError(null)
 
     try {
-      // Create sub account using Orderly SDK
+      // Create sub account for trading
       console.log('Creating sub account...')
       const subAccountResult = await subAccount.create()
       console.log('Sub account created:', subAccountResult)
@@ -198,7 +198,7 @@ export default function CreateAgentPage() {
         trigger = { type: 'timer', intervalMs: triggerData?.intervalMs || 60000 }
       }
 
-      // Find the Orderly symbol for the selected memecoin
+      // Find the trading symbol for the selected memecoin
       const coin = MEMECOINS.find(c => c.symbol === selectedMemecoin)
       const orderlySymbol = coin?.orderly || 'PERP_DOGE_USDC'
 
@@ -543,7 +543,7 @@ export default function CreateAgentPage() {
                 <ol className="space-y-3 text-sm">
                   <li className="flex items-start gap-3">
                     <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">1</span>
-                    <span>Agent deploys on <strong>Orderly Finance (Arbitrum)</strong></span>
+                    <span>Agent deploys on <strong>Perpetual DEX (Arbitrum)</strong></span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">2</span>
@@ -579,7 +579,7 @@ export default function CreateAgentPage() {
             <CardContent className="space-y-4">
               {isCreatingSubAccount ? (
                 <WalletSignaturePrompt
-                  message="Creating Orderly Sub-Account"
+                  message="Creating Trading Sub-Account"
                   description="Please sign the sub-account creation message in your wallet"
                 />
               ) : (

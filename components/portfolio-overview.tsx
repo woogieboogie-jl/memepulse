@@ -43,7 +43,7 @@ export function PortfolioOverview() {
   const [depositStep, setDepositStep] = useState<'idle' | 'approving' | 'depositing'>('idle')
   const [isDepositPending, setIsDepositPending] = useState(false)
 
-  // Orderly hooks
+  // Trading hooks
   const { subAccount } = useAccount()
   const accountInstance = useAccountInstance()
   const accountId = accountInstance?.accountId

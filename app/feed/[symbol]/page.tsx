@@ -197,7 +197,7 @@ export default function FeedPage({ params }: { params: Promise<{ symbol: string 
                             <div>
                                 <h3 className="text-sm font-semibold text-blue-500 mb-1">How This Oracle Works</h3>
                                 <p className="text-xs text-muted-foreground">
-                                    Prices update from <strong>volume-weighted averages</strong> of live perp trading on Orderly Finance.
+                                    Prices update from <strong>volume-weighted averages</strong> of live perpetual trading.
                                     {isStatsLoading ? '...' : activeAgents} active agents + manual traders contribute.
                                     Updates recorded on MemeCore (Chain {contract.chainId}).
                                 </p>

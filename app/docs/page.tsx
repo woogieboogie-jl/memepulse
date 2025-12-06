@@ -66,7 +66,7 @@ export default function DocsPage() {
                                                 <h4 className="font-semibold">Trading Layer</h4>
                                             </div>
                                             <p className="text-xs text-muted-foreground mb-2">
-                                                <strong>Arbitrum (via Orderly Finance)</strong>
+                                                <strong>Arbitrum (Perpetual DEX)</strong>
                                             </p>
                                             <ul className="text-xs space-y-1 text-muted-foreground">
                                                 <li>• Agent perp trading execution</li>
@@ -98,7 +98,7 @@ export default function DocsPage() {
                                     <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
                                         <h4 className="font-semibold text-sm mb-2">Data Flow</h4>
                                         <div className="text-xs space-y-1 font-mono text-muted-foreground">
-                                            <div>1. Agent/Manual trades execute on <strong>Arbitrum (Orderly)</strong></div>
+                                            <div>1. Agent/Manual trades execute on <strong>Arbitrum (Perp DEX)</strong></div>
                                             <div>2. VWAP calculated from trade volume + time weight</div>
                                             <div>3. Price update written to oracle on <strong>MemeCore</strong></div>
                                             <div>4. Contributors earn foundation subsidies</div>
@@ -147,7 +147,7 @@ export default function DocsPage() {
                                             <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">1</span>
                                             <div>
                                                 <strong className="text-sm">Agent Creation</strong>
-                                                <p className="text-xs text-muted-foreground mt-1">User deploys agent via Orderly Finance (Arbitrum)</p>
+                                                <p className="text-xs text-muted-foreground mt-1">User deploys agent on Perpetual DEX (Arbitrum)</p>
                                             </div>
                                         </li>
                                         <li className="flex items-start gap-3">
@@ -194,7 +194,7 @@ export default function DocsPage() {
                                         <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
                                             <h4 className="font-semibold text-sm mb-2 text-green-500">1. Trading P&L</h4>
                                             <ul className="text-xs space-y-1 text-muted-foreground">
-                                                <li>• Profit/loss from perp trades on Orderly</li>
+                                                <li>• Profit/loss from perpetual trades</li>
                                                 <li>• Agent strategy performance</li>
                                                 <li>• Delegators share in agent returns</li>
                                             </ul>
