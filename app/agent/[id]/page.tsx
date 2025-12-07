@@ -66,8 +66,8 @@ const MEMECOIN_EMOJI: Record<string, string> = {
 }
 
 function getSymbolFromTrading(tradingSymbol: string): string {
-  const match = orderlySymbol.match(/PERP_(\w+)_USDC/)
-  return match ? match[1] : orderlySymbol
+  const match = tradingSymbol.match(/PERP_(\w+)_USDC/)
+  return match ? match[1] : tradingSymbol
 }
 
 export default function AgentDetailPage() {
