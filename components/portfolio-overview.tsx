@@ -106,7 +106,7 @@ export function PortfolioOverview() {
 
       setSubAccountBalances(balances)
     } catch {
-      // Ignore errors
+      // Ignore errors - API may fail if Orderly account not fully registered
     }
   }, [accountId])
 
@@ -231,10 +231,10 @@ export function PortfolioOverview() {
     }
   }, [accountId, fetchSubAccountBalances])
 
-  // Poll faster (1s) when there's a pending deposit
+  // Poll faster (5s) when there's a pending deposit - not too aggressive
   useEffect(() => {
     if (!pendingDeposit) return
-    const interval = setInterval(fetchSubAccountBalances, 1000)
+    const interval = setInterval(fetchSubAccountBalances, 5000)
     return () => clearInterval(interval)
   }, [pendingDeposit, fetchSubAccountBalances])
 
@@ -328,24 +328,23 @@ export function PortfolioOverview() {
           <p className="text-xl font-bold leading-none">${positionValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </Card>
 
-        <Card className="p-2.5">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1">
-              <div className="flex items-center gap-1.5 mb-1">
-                <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Available Balance</p>
-              </div>
-              <p className="text-xl font-bold leading-none">${availableBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-            </div>
+        <Card className="p-2.5 relative">
+          <div className="flex items-center gap-1.5 mb-1">
+            <TrendingUp className="h-3.5 w-3.5 text-primary" />
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Available Balance</p>
+          </div>
+          <p className="text-xl font-bold leading-none">${availableBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          {/* Deposit button positioned absolute top-right */}
+          <div className="absolute top-2 right-2">
             {pendingDeposit ? (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 mt-1">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
                 <span className="text-xs font-medium text-primary">+${pendingDeposit.amount.toFixed(2)}</span>
               </div>
             ) : (
               <Button
                 size="sm"
-                className="h-7 text-xs mt-1"
+                className="h-7 text-xs"
                 onClick={() => setShowDepositModal(true)}
               >
                 <Plus className="h-3 w-3 mr-1" />

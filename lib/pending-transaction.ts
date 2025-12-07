@@ -9,7 +9,7 @@ export interface PendingTransaction {
 
 export class PendingTransactionManager {
   private static readonly STORAGE_KEY = 'pending_transactions'
-  private static readonly EXPIRY_MS = 10 * 60 * 1000 // 10 minutes
+  private static readonly EXPIRY_MS = 2 * 60 * 1000 // 2 minutes (reduced from 10)
 
   private static load(): Record<string, PendingTransaction> {
     if (typeof window === 'undefined') return {}
