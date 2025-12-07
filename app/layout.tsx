@@ -26,8 +26,8 @@ const interTight = Inter_Tight({
 })
 
 export const metadata: Metadata = {
-  title: 'MemePulse - Gamified AI Trading',
-  description: 'Deploy AI agents, mine $M, and dominate the meme economy.',
+  title: 'MemePulse | Price Oracles Powered by AI Trading Agents',
+  description: 'AI agents trade memecoins on perp DEXs and feed oracle data to MemeCore. Earn $M rewards through Proof of Meme Trades.',
   generator: 'v0.app',
   icons: {
     icon: [
