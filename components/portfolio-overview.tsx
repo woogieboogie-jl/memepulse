@@ -329,8 +329,8 @@ export function PortfolioOverview() {
         </Card>
 
         <Card className="p-2.5">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
               <div className="flex items-center gap-1.5 mb-1">
                 <TrendingUp className="h-3.5 w-3.5 text-primary" />
                 <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Available Balance</p>
@@ -338,18 +338,18 @@ export function PortfolioOverview() {
               <p className="text-xl font-bold leading-none">${availableBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </div>
             {pendingDeposit ? (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 mt-1">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 <span className="text-xs font-medium text-primary">+${pendingDeposit.amount.toFixed(2)}</span>
               </div>
             ) : (
               <Button
                 size="sm"
-                className="h-8"
+                className="h-7 text-xs mt-1"
                 onClick={() => setShowDepositModal(true)}
               >
-                <Plus className="h-4 w-4 mr-1" />
-                Deposit
+                <Plus className="h-3 w-3 mr-1" />
+                +${walletBalance ? parseFloat(walletBalance).toFixed(2) : '0.00'}
               </Button>
             )}
           </div>
