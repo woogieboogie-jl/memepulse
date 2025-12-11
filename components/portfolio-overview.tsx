@@ -2,15 +2,16 @@
 
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { TrendingUp, TrendingDown, Wallet, Activity, Bot, Plus, Loader2 } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, Activity, Bot, Plus, Minus, Loader2, RefreshCw } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useTheme } from 'next-themes'
-import { useAccount, useAccountInstance, useCollateral, usePositionStream, useStatisticsDaily, useDeposit, useChains } from '@orderly.network/hooks'
+import { useAccount, useAccountInstance, useCollateral, usePositionStream, useStatisticsDaily, useDeposit, useWithdraw, useChains } from '@orderly.network/hooks'
 import { useConnectWallet } from '@web3-onboard/react'
 import { useAuth } from '@/contexts/AuthContext'
 import { agentApi } from '@/lib/api'
 import { OrderlyDepositModal } from '@/components/modals/orderly-deposit-modal'
+import { OrderlyWithdrawModal } from '@/components/modals/orderly-withdraw-modal'
 import { PendingTransactionManager } from '@/lib/pending-transaction'
 
 interface SubAccountBalance {
@@ -43,6 +44,14 @@ export function PortfolioOverview() {
   const [depositStep, setDepositStep] = useState<'idle' | 'approving' | 'depositing'>('idle')
   const [isDepositPending, setIsDepositPending] = useState(false)
 
+  // Withdraw state
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false)
+  const [withdrawAmount, setWithdrawAmount] = useState('')
+  const [isWithdrawPending, setIsWithdrawPending] = useState(false)
+
+  // Settle state
+  const [isSettling, setIsSettling] = useState(false)
+
   // Trading hooks
   const { subAccount } = useAccount()
   const accountInstance = useAccountInstance()
@@ -67,6 +76,17 @@ export function PortfolioOverview() {
     decimals: 6,
     srcToken: 'USDC',
     srcChainId: 42161,
+  })
+
+  // Withdraw hook
+  const {
+    withdraw,
+    maxAmount: maxWithdrawAmount,
+    availableWithdraw,
+  } = useWithdraw({
+    srcChainId: 42161,
+    token: 'USDC',
+    decimals: 6,
   })
 
   // Unrealized PnL from collateral hook
@@ -122,8 +142,9 @@ export function PortfolioOverview() {
   // Available balance from main account collateral
   const availableBalance = collateral?.availableBalance || 0
 
-  // Get pending deposit (auto-clears if balance changed or expired)
+  // Get pending transactions (auto-clears if balance changed or expired)
   const pendingDeposit = PendingTransactionManager.get('deposit', totalCollateral)
+  const pendingWithdraw = PendingTransactionManager.get('withdraw', totalCollateral)
 
   // Deposit handlers
   const handleDepositAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,6 +189,59 @@ export function PortfolioOverview() {
     setShowDepositModal(false)
     setDepositAmount('')
     setDepositQuantity('')
+  }
+
+  // Withdraw handlers
+  const handleWithdrawAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setWithdrawAmount(e.target.value)
+  }
+
+  const handleWithdraw = async () => {
+    if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) return
+
+    try {
+      setIsWithdrawPending(true)
+      await withdraw({
+        chainId: 42161,
+        token: 'USDC',
+        amount: withdrawAmount,
+        allowCrossChainWithdraw: false,
+      })
+
+      // Save pending withdraw to localStorage
+      PendingTransactionManager.set('withdraw', parseFloat(withdrawAmount), totalCollateral)
+
+      setShowWithdrawModal(false)
+      setWithdrawAmount('')
+
+      // Refresh balances after withdraw
+      await fetchSubAccountBalances()
+    } catch (error) {
+      console.error('Withdraw failed:', error)
+    } finally {
+      setIsWithdrawPending(false)
+    }
+  }
+
+  const handleCloseWithdrawModal = () => {
+    setShowWithdrawModal(false)
+    setWithdrawAmount('')
+  }
+
+  // Settle handler
+  const handleSettle = async () => {
+    if (!accountInstance) return
+
+    try {
+      setIsSettling(true)
+      await accountInstance.settle()
+      // Refresh balances after settle
+      await fetchSubAccountBalances()
+    } catch (error) {
+      console.error('Settle failed:', error)
+    } finally {
+      setIsSettling(false)
+    }
   }
 
   // Daily statistics for chart
@@ -328,12 +402,17 @@ export function PortfolioOverview() {
           <p className="text-xl font-bold leading-none">${positionValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </Card>
 
+<<<<<<< HEAD
         <Card className="p-2.5 relative">
+=======
+        <Card className="p-2.5">
+>>>>>>> a544bfc (feat: add withdraw)
           <div className="flex items-center gap-1.5 mb-1">
             <TrendingUp className="h-3.5 w-3.5 text-primary" />
             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Available Balance</p>
           </div>
           <p className="text-xl font-bold leading-none">${availableBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+<<<<<<< HEAD
           {/* Deposit button positioned absolute top-right */}
           <div className="absolute top-2 right-2">
             {pendingDeposit ? (
@@ -349,9 +428,37 @@ export function PortfolioOverview() {
               >
                 <Plus className="h-3 w-3 mr-1" />
                 +${walletBalance ? parseFloat(walletBalance).toFixed(2) : '0.00'}
+=======
+          {pendingDeposit || pendingWithdraw ? (
+            <div className="flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-md bg-primary/10">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span className="text-xs font-medium text-primary">
+                {pendingDeposit ? `+$${pendingDeposit.amount.toFixed(2)}` : `-$${pendingWithdraw?.amount.toFixed(2)}`}
+              </span>
+            </div>
+          ) : (
+            <div className="flex gap-1 mt-2">
+              <Button
+                size="sm"
+                className="flex-1 h-7 text-xs"
+                onClick={() => setShowDepositModal(true)}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Deposit
+>>>>>>> a544bfc (feat: add withdraw)
               </Button>
-            )}
-          </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 h-7 text-xs"
+                onClick={() => setShowWithdrawModal(true)}
+                disabled={availableBalance <= 0}
+              >
+                <Minus className="h-3 w-3 mr-1" />
+                Withdraw
+              </Button>
+            </div>
+          )}
         </Card>
       </div>
 
@@ -448,7 +555,27 @@ export function PortfolioOverview() {
             </div>
 
             <div className="p-2 rounded-md bg-muted/30">
-              <p className="text-[9px] text-muted-foreground uppercase tracking-wide mb-0.5">Unrealized P&L</p>
+              <div className="flex items-center justify-between mb-0.5">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Unsettled P&L</p>
+                {unrealizedPnL !== 0 && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-5 px-1.5 text-[9px]"
+                    onClick={handleSettle}
+                    disabled={isSettling}
+                  >
+                    {isSettling ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <>
+                        <RefreshCw className="h-2.5 w-2.5 mr-0.5" />
+                        Settle
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
               <div className="flex items-center gap-1">
                 {unrealizedPnL >= 0 ? (
                   <TrendingUp className="h-3 w-3 text-accent" />
@@ -483,6 +610,16 @@ export function PortfolioOverview() {
         onDeposit={handleDeposit}
         depositStep={depositStep}
         isDepositPending={isDepositPending}
+      />
+
+      <OrderlyWithdrawModal
+        isOpen={showWithdrawModal}
+        onClose={handleCloseWithdrawModal}
+        withdrawAmount={withdrawAmount}
+        onAmountChange={handleWithdrawAmountChange}
+        availableBalance={availableBalance}
+        onWithdraw={handleWithdraw}
+        isWithdrawPending={isWithdrawPending}
       />
     </div>
   )
