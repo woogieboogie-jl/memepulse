@@ -402,33 +402,12 @@ export function PortfolioOverview() {
           <p className="text-xl font-bold leading-none">${positionValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </Card>
 
-<<<<<<< HEAD
-        <Card className="p-2.5 relative">
-=======
         <Card className="p-2.5">
->>>>>>> a544bfc (feat: add withdraw)
           <div className="flex items-center gap-1.5 mb-1">
             <TrendingUp className="h-3.5 w-3.5 text-primary" />
             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Available Balance</p>
           </div>
           <p className="text-xl font-bold leading-none">${availableBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-<<<<<<< HEAD
-          {/* Deposit button positioned absolute top-right */}
-          <div className="absolute top-2 right-2">
-            {pendingDeposit ? (
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10">
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                <span className="text-xs font-medium text-primary">+${pendingDeposit.amount.toFixed(2)}</span>
-              </div>
-            ) : (
-              <Button
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => setShowDepositModal(true)}
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                +${walletBalance ? parseFloat(walletBalance).toFixed(2) : '0.00'}
-=======
           {pendingDeposit || pendingWithdraw ? (
             <div className="flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-md bg-primary/10">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -445,7 +424,6 @@ export function PortfolioOverview() {
               >
                 <Plus className="h-3 w-3 mr-1" />
                 Deposit
->>>>>>> a544bfc (feat: add withdraw)
               </Button>
               <Button
                 size="sm"
