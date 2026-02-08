@@ -36,6 +36,7 @@ import {
   Wallet,
   ArrowUpRight,
   ArrowDownLeft,
+  XCircle,
 } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
@@ -51,7 +52,9 @@ import {
   useCollateral,
   useAccountInstance,
   useSubAccountDataObserver,
+  useSubAccountMutation,
 } from '@orderly.network/hooks'
+import { OrderSide, OrderType } from '@orderly.network/types'
 import { WalletRequired } from '@/components/wallet-required'
 
 // Memecoin emoji mapping
@@ -93,6 +96,10 @@ export default function AgentDetailPage() {
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [isWithdrawing, setIsWithdrawing] = useState(false)
 
+  // Close all positions state
+  const [showCloseAllConfirm, setShowCloseAllConfirm] = useState(false)
+  const [isClosingAll, setIsClosingAll] = useState(false)
+
   // Trading hooks
   const { subAccount } = useAccount()
   const accountInstance = useAccountInstance()
@@ -105,6 +112,11 @@ export default function AgentDetailPage() {
 
   // Use subaccount observer to get positions for agent's subaccount
   const { positions: subAccountPositions } = useSubAccountDataObserver(agent?.subAccountId)
+
+  // Close position mutation for subaccount
+  const [doCloseOrder] = useSubAccountMutation('/v1/order', 'POST', {
+    accountId: agent?.subAccountId,
+  })
 
   // SubAccount balance
   const [subAccountBalance, setSubAccountBalance] = useState<{
@@ -322,6 +334,34 @@ export default function AgentDetailPage() {
   const handleRenewalSuccess = () => {
     setShowRenewalModal(false)
     window.dispatchEvent(new Event('localStorageChange'))
+  }
+
+  const handleCloseAllPositions = async () => {
+    const positions = subAccountPositions?.rows
+    if (!positions || positions.length === 0) return
+
+    setIsClosingAll(true)
+    try {
+      for (const position of positions) {
+        const side = position.position_qty > 0 ? OrderSide.SELL : OrderSide.BUY
+        await doCloseOrder({
+          symbol: position.symbol,
+          order_type: OrderType.MARKET,
+          side,
+          order_quantity: Math.abs(position.position_qty),
+          reduce_only: true,
+        })
+      }
+      setShowCloseAllConfirm(false)
+      if (agent?.subAccountId) {
+        fetchSubAccountBalance(agent.subAccountId)
+      }
+    } catch (error) {
+      console.error('Failed to close positions:', error)
+      alert('Failed to close some positions')
+    } finally {
+      setIsClosingAll(false)
+    }
   }
 
   // Health check
@@ -582,8 +622,24 @@ export default function AgentDetailPage() {
 
             <TabsContent value="positions">
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Open Positions</CardTitle>
+                  {subAccountPositions?.rows && subAccountPositions.rows.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-7 text-xs"
+                      onClick={() => setShowCloseAllConfirm(true)}
+                      disabled={isClosingAll}
+                    >
+                      {isClosingAll ? (
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      ) : (
+                        <XCircle className="h-3 w-3 mr-1" />
+                      )}
+                      Close All
+                    </Button>
+                  )}
                 </CardHeader>
                 <CardContent className="p-0">
                   <Table>
@@ -783,6 +839,52 @@ export default function AgentDetailPage() {
               </Button>
             </div>
         </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Close All Positions Confirmation */}
+      <Dialog open={showCloseAllConfirm} onOpenChange={setShowCloseAllConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Close All Positions</DialogTitle>
+            <DialogDescription>
+              This will market-close all {subAccountPositions?.rows?.length || 0} open position(s). This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="p-4 bg-destructive/10 rounded-lg text-sm space-y-2">
+              <p className="text-destructive font-medium">
+                All positions will be closed at market price. Slippage may apply.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowCloseAllConfirm(false)}
+                disabled={isClosingAll}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={handleCloseAllPositions}
+                disabled={isClosingAll}
+              >
+                {isClosingAll ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Closing...
+                  </>
+                ) : (
+                  'Close All Positions'
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
